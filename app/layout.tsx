@@ -2,14 +2,14 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
-import Navbar from "@/components/navbar"
+import LayoutContent from "@/components/LayoutContent"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Zeur - Zero Interest DeFi Lending",
   description: "Borrow stablecoins with zero interest while earning yield on your collateral",
-    generator: 'v0.dev'
+  generator: 'v0.dev',
 }
 
 export default function RootLayout({
@@ -20,12 +20,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-      <div className="min-h-screen dark-gradient-bg">
-          <Navbar />
-          <div className="container mx-auto px-4 py-6">
-            {children}
-          </div>
-        </div>
+        <LayoutContent children={children}/>
       </body>
     </html>
   )

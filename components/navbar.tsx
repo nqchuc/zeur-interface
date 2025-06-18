@@ -15,7 +15,7 @@ export default function Navbar() {
   const pathname = usePathname()
 
   const navItems = [
-    { href: "/", label: "Dashboard", icon: BarChart3 },
+    { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
     { href: "/borrow", label: "Borrow", icon: DollarSign },
     { href: "/lend", label: "Lend", icon: TrendingUp },
     { href: "/history", label: "History", icon: History },

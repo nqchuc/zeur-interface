@@ -51,7 +51,7 @@ export default function HistoryPage() {
         <CardContent>
           <div className="space-y-3">
             {transactions.map((tx, index) => (
-              <div key={index} className="bg-slate-800/30 rounded-lg p-3 flex items-center justify-between">
+              <div key={index} className="bg-slate-800/30 rounded-lg p-3 glow-purple flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <div className={`w-8 h-8 rounded-full bg-${tx.color}-500/20 flex items-center justify-center`}>
                     {tx.type === "Borrow" && <DollarSign className="h-4 w-4 text-purple-400" />}
