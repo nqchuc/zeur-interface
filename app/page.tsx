@@ -86,7 +86,7 @@ export default function ZeurLanding() {
             </a>
           </div>
 
-          <Link href="/lending">
+          <Link href="/dashboard">
             <Button className="btn-primary-purple rounded-lg px-6 py-2">Launch App</Button>
           </Link>
         </div>
@@ -114,7 +114,7 @@ export default function ZeurLanding() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
-              <Link href="/lending">
+              <Link href="/dashboard">
                 <Button size="lg" className="btn-primary-purple rounded-lg px-8 py-4 text-lg font-semibold">
                   Launch App
                   <ArrowRight className="ml-2 h-5 w-5" />
@@ -225,7 +225,7 @@ export default function ZeurLanding() {
               Join thousands of users already borrowing EUR at 0% interest
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Link href="/lending">
+              <Link href="/dashboard">
                 <Button size="lg" className="btn-primary-purple rounded-lg px-8 py-4 text-lg font-semibold">
                   Launch Zeur App
                   <ArrowRight className="ml-2 h-5 w-5" />

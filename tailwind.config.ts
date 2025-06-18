@@ -33,10 +33,6 @@ const config = {
           DEFAULT: "#CDC1FF",
           foreground: "#4a4a4a",
         },
-        accent: {
-          DEFAULT: "#FFF6E3",
-          foreground: "#4a4a4a",
-        },
         highlight: {
           DEFAULT: "#FFCCEA",
           foreground: "#4a4a4a",
