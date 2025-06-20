@@ -17,7 +17,7 @@ export default function Navbar() {
   const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
     { href: "/borrow", label: "Borrow", icon: DollarSign },
-    { href: "/lend", label: "Lend", icon: TrendingUp },
+    { href: "/supply", label: "Supply", icon: TrendingUp },
     { href: "/history", label: "History", icon: History },
   ]
 
