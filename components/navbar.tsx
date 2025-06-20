@@ -10,9 +10,14 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { useAccount, useConnect } from "wagmi"
 
 export default function Navbar() {
   const pathname = usePathname()
+
+  const {isConnected} = useAccount();
+  const { connect, connectors } = useConnect()
+
 
   const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
@@ -50,14 +55,20 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center space-x-4">
-          <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+          {
+            isConnected && <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
             <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
             Connected
           </Badge>
-          <Button className="btn-secondary-dark rounded-lg">
+          }
+         {
+            isConnected ? <Button className="btn-secondary-dark rounded-lg">
             <Wallet className="h-4 w-4 mr-2" />
             0x1234...5678
-          </Button>
+          </Button> :          <Button onClick={() => connect({ connector: connectors[0]})} className="btn-primary-purple rounded-lg px-6 py-2">Connect Wallet</Button>
+
+         }
+          
         </div>
       </div>
     </nav>
