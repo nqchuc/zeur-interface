@@ -253,3 +253,34 @@ export const ASSET_METADATA: Record<string, { symbol: string; name: string; icon
     protocols: [] 
   },
 }
+
+
+export const vaultStrategies = [
+  {
+    name: "ETH Liquid Staking",
+    risk: "Low",
+    apy: "6.2%",
+    color: "from-green-500 to-green-400",
+    recommended: true,
+    description: "Stake your ETH and earn yield through liquid staking protocols.",
+    protocols: ["Lido", "RocketPool"],
+  },
+  {
+    name: "Stablecoin Lending",
+    risk: "Low",
+    apy: "4.8%",
+    color: "from-blue-500 to-blue-400",
+    recommended: false,
+    description: "Lend stablecoins and earn interest with minimal risk.",
+    protocols: ["Aave", "Compound"],
+  },
+  {
+    name: "DeFi Blue-Chip Vault",
+    risk: "Medium",
+    apy: "8.7%",
+    color: "from-purple-500 to-purple-400",
+    recommended: false,
+    description: "Earn yield on a basket of blue-chip DeFi tokens.",
+    protocols: ["Aave", "Yearn", "Curve"],
+  },
+]
