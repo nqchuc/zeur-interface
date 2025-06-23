@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { debtAssets, userCollateralPositions } from "@/lib/constants"
+import { debtAssets, userCollateralPositions, userSupplyPositions } from "@/lib/constants"
 import { formatNumber, formatPercentage, formatUtilization } from "@/lib/helper"
 import { useSupply } from "@/hooks/contexts/SupplyHookContext"
 
@@ -57,15 +57,15 @@ export default function SupplyPage() {
                           {/* First Row - Asset Info and APY */}
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center space-x-3">
-                              <div
+                              <img
+                                src={asset.icon}
                                 className={`w-8 h-8 rounded-full flex items-center justify-center text-lg ${
                                   selectedLendAsset === asset.symbol
                                     ? "bg-blue-500/20 border-2 border-blue-500/50"
                                     : `bg-[${asset.color}20]`
                                 }`}
                               >
-                                {asset.icon}
-                              </div>
+                              </img>
                               <div>
                                 <div className="font-semibold text-white text-sm flex items-center">
                                   {asset.symbol}
@@ -168,9 +168,9 @@ export default function SupplyPage() {
                                 <div className="space-y-3">
                                   <div className="flex items-center justify-between">
                                     <div className="flex items-center space-x-3">
-                                      <div className="w-10 h-10 rounded-full bg-blue-500/20 border-2 border-blue-500/50 flex items-center justify-center text-lg">
-                                        {selectedAsset.icon}
-                                      </div>
+                                      <img src={selectedAsset.icon} className="w-10 h-10 rounded-full bg-blue-500/20 border-2 border-blue-500/50 flex items-center justify-center text-lg">
+                                        {/* {selectedAsset.icon} */}
+                                      </img>
                                       <div>
                                         <div className="font-semibold text-white text-base">{selectedAsset.symbol}</div>
                                         <div className="text-sm text-slate-400">{selectedAsset.name}</div>
@@ -386,7 +386,7 @@ export default function SupplyPage() {
                               size="lg"
                               className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-lg py-3 text-sm font-semibold transition-all"
                             >
-                              Start Earning
+                              Supply
                               <TrendingUp className="ml-2 h-4 w-4" />
                             </Button>
                           </div>
@@ -398,13 +398,16 @@ export default function SupplyPage() {
               </div>
             </div>
 
-            {/* User Collateral Positions Table */}
+            
+
+
+            {/* User Debt Positions Table */}
             <Card className="card-dark rounded-xl">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg font-bold text-white">Your Collateral Positions</CardTitle>
-                  <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs">
-                    {userCollateralPositions.length} Active
+                  <CardTitle className="text-lg font-bold text-white">Your Supply Positions</CardTitle>
+                  <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 text-xs">
+                    {userSupplyPositions.length} Active
                   </Badge>
                 </div>
               </CardHeader>
@@ -416,20 +419,18 @@ export default function SupplyPage() {
                         <th className="text-left text-xs font-medium text-slate-400 pb-3">Asset</th>
                         <th className="text-right text-xs font-medium text-slate-400 pb-3">Supply Balance</th>
                         <th className="text-right text-xs font-medium text-slate-400 pb-3">Balance USD</th>
-                        <th className="text-right text-xs font-medium text-slate-400 pb-3">Net / Base</th>
-                        <th className="text-right text-xs font-medium text-slate-400 pb-3">Rates</th>
+                        <th className="text-right text-xs font-medium text-slate-400 pb-3">APY</th>
                         <th className="text-right text-xs font-medium text-slate-400 pb-3">Utilization</th>
                         <th className="text-right text-xs font-medium text-slate-400 pb-3">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {userCollateralPositions.map((position, index) => (
+                      {userSupplyPositions.map((position, index) => (
                         <tr key={index} className="border-b border-slate-800/50">
                           <td className="py-4">
                             <div className="flex items-center space-x-3">
-                              <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-lg">
-                                {position.icon}
-                              </div>
+                              <img src={position.icon} className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center text-lg">
+                              </img>
                               <div>
                                 <div className="font-semibold text-white text-sm">{position.symbol}</div>
                                 <div className="text-xs text-slate-400">{position.name}</div>
@@ -441,23 +442,20 @@ export default function SupplyPage() {
                             <div className="text-xs text-slate-400">{position.symbol}</div>
                           </td>
                           <td className="text-right py-4">
-                            <div className="font-semibold text-white text-sm">${position.balanceUSD}</div>
+                            <div className="font-semibold text-white text-sm">${position.supplyBalanceUSD}</div>
+                            <div className="text-xs text-slate-400">{position.symbol}</div>
                           </td>
                           <td className="text-right py-4">
-                            <div className="font-semibold text-white text-sm">{position.netBase}</div>
-                            <div className="text-xs text-slate-400">Net {position.symbol}</div>
+                            <div className="font-semibold text-green-400 text-sm">{formatPercentage(position.supplyRate)}</div>
                           </td>
                           <td className="text-right py-4">
-                            <div className="font-semibold text-green-400 text-sm">{position.currentRate}%</div>
-                            <div className="text-xs text-slate-400">{position.baseRate}% base</div>
+                            <div className="font-semibold text-cyan-400 text-sm">{formatUtilization(position.utilizationRate)}</div>
                           </td>
-                          <td className="text-right py-4">
-                            <div className="font-semibold text-cyan-400 text-sm">{position.utilizationRate}%</div>
-                          </td>
+
                           <td className="text-right py-4">
                             <div className="flex justify-end space-x-2">
                               <Button size="sm" variant="outline" className="text-xs h-7 px-2">
-                                Withdraw
+                                Repay
                               </Button>
                               <Button size="sm" variant="outline" className="text-xs h-7 px-2">
                                 <ExternalLink className="h-3 w-3" />
