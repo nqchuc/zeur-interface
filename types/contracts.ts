@@ -1,8 +1,8 @@
 import { Address } from 'viem'
 
 export enum AssetType {
-  Collateral = 0,
-  Debt = 1
+  Collateral = 1,
+  Debt = 2
 }
 
 export interface StakedTokenData {
@@ -12,11 +12,11 @@ export interface StakedTokenData {
 }
 
 export interface AssetData {
-  assetType: AssetType
-  asset: Address
+  assetType: number
+  asset: string
   supplyCap: bigint
   borrowCap: bigint
-  totalSupply: bigint
+  totalSupply?: bigint
   totalBorrow?: bigint
   totalShares?: bigint
   utilizationRate?: bigint
@@ -31,6 +31,9 @@ export interface AssetData {
   isFrozen: boolean
   isPaused: boolean
   stakedTokens?: StakedTokenData[]
+  colToken: string
+  debtToken: string
+  tokenVault: string
 }
 
 export interface UserCollateralData {
@@ -58,7 +61,7 @@ export interface UserData {
 // UI formatted types
 export interface FormattedAssetData {
   assetType: AssetType
-  asset: Address
+  asset: string
   symbol: string
   name: string
   icon: string

@@ -17,9 +17,11 @@ import { Slider } from "@/components/ui/slider"
 import { Progress } from "@/components/ui/progress"
 import { borrowAssets, collateralAssets, userDebtPositions } from "@/lib/constants"
 import { formatNumber, formatPercentage } from "@/lib/helper"
+import { useSupply } from "@/hooks/contexts/SupplyHookContext"
+import { useBorrow } from "@/hooks/contexts/BorrowHookContext"
 
 export default function BorrowPage() {
-  const [collateralAsset, setCollateralAsset] = useState("ETH")
+  const [collateralAsset, setCollateralAsset] = useState("LINK")
   const [borrowAsset, setBorrowAsset] = useState("EURC")
   const [collateralAmount, setCollateralAmount] = useState("")
   const [borrowAmount, setBorrowAmount] = useState("")
@@ -27,6 +29,11 @@ export default function BorrowPage() {
   const [autoRepay, setAutoRepay] = useState(false)
   const [stopLoss, setStopLoss] = useState("")
   const [takeProfit, setTakeProfit] = useState("")
+
+  //Hook
+  const {debtAssets,} = useSupply();
+  const {collateralAssets} = useBorrow();
+
 
 
   const calculateBorrowAmount = () => {
@@ -50,6 +57,11 @@ export default function BorrowPage() {
   }, [collateralAmount, collateralAsset, ltv])
 
   const healthFactor = calculateHealthFactor()
+
+  useEffect(() => {
+    console.log("colatteralAssets", collateralAssets)
+  }, [collateralAssets])
+  
 
   return (
     <div className="space-y-6">
@@ -87,15 +99,16 @@ export default function BorrowPage() {
                           {/* First Row - Asset Info and APY */}
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center space-x-3">
-                              <div
+                              <img
                                 className={`w-8 h-8 rounded-full flex items-center justify-center text-lg ${
                                   collateralAsset === asset.symbol
-                                    ? "bg-purple-500/20 border-2 border-purple-500/50"
+                                    ? ""
                                     : `bg-[${asset.color}20]`
                                 }`}
+                                src={asset.icon}
                               >
-                                {asset.icon}
-                              </div>
+                                {/* {asset.icon} */}
+                              </img>
                               <div>
                                 <div className="font-semibold text-white text-sm flex items-center">
                                   {asset.symbol}
@@ -160,15 +173,15 @@ export default function BorrowPage() {
                         <div className="space-y-2">
                           <Label className="text-sm font-semibold text-white">Selected Collateral Asset</Label>
                           <div className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 rounded-lg p-4 border border-purple-500/20">
-                            {(() => {
+                            {collateralAsset.length > 0 &&(() => {
                               const selectedAsset = collateralAssets.find((a) => a.symbol === collateralAsset)
                               return selectedAsset ? (
                                 <div className="space-y-2">
                                   <div className="flex items-center justify-between">
                                     <div className="flex items-center space-x-3">
-                                      <div className="w-10 h-10 rounded-full bg-purple-500/20 border-2 border-purple-500/50 flex items-center justify-center text-lg">
-                                        {selectedAsset.icon}
-                                      </div>
+                                      <img src={selectedAsset.icon} className="w-10 h-10 rounded-full  flex items-center justify-center text-lg">
+                                        {/* {selectedAsset.icon} */}
+                                      </img>
                                       <div>
                                         <div className="font-semibold text-white text-base">{selectedAsset.symbol}</div>
                                         <div className="text-sm text-slate-400">{selectedAsset.name}</div>
@@ -195,13 +208,15 @@ export default function BorrowPage() {
                                     </div>
                                     <div className="text-center">
                                       <div className="text-xs text-slate-400">Current Price</div>
-                                      <div className="font-semibold text-white text-sm">
-                                        ${formatNumber(selectedAsset.currentPrice)}
-                                      </div>
+                                      {
+                                        selectedAsset.currentPrice && (<div className="font-semibold text-white text-sm">
+                                          ${formatNumber(selectedAsset.currentPrice)}
+                                        </div>)
+                                      }
                                     </div>
                                   </div>
 
-                                  <div className="bg-slate-800/50 rounded-lg p-3 flex flex-row gap-2 items-center">
+                                  {/* <div className="bg-slate-800/50 rounded-lg p-3 flex flex-row gap-2 items-center">
                                     <div className="text-xs text-slate-400 ">Yield Strategy:</div>
                                     <div className="flex flex-wrap gap-2">
                                       {selectedAsset.stakedTokens.map((token, index) => (
@@ -217,7 +232,7 @@ export default function BorrowPage() {
                                         <span className="text-xs text-slate-400">Direct holding - no staking</span>
                                       )}
                                     </div>
-                                  </div>
+                                  </div> */}
                                 </div>
                               ) : null
                             })()}
@@ -266,7 +281,7 @@ export default function BorrowPage() {
                         <div className="space-y-3">
                           <Label className="text-sm font-semibold text-white">Borrow Asset</Label>
                           <div className="grid grid-cols-3 gap-2">
-                            {borrowAssets.map((asset) => (
+                            {debtAssets.map((asset) => (
                               <Button
                                 key={asset.symbol}
                                 variant="outline"
@@ -275,9 +290,9 @@ export default function BorrowPage() {
                                 }`}
                                 onClick={() => setBorrowAsset(asset.symbol)}
                               >
-                                <span className="text-base">{asset.icon}</span>
+                                <img src={asset.icon} className="text-base w-8 h-8"></img>
                                 <span className="font-semibold text-white text-xs">{asset.symbol}</span>
-                                <span className="text-xs text-slate-400">{asset.rate} Interest</span>
+                                <span className="text-xs text-slate-400">{asset.borrowRate}% Interest</span>
                               </Button>
                             ))}
                           </div>
@@ -371,7 +386,7 @@ export default function BorrowPage() {
                             size="lg"
                             className="w-full btn-primary-purple rounded-lg py-3 text-sm font-semibold mt-3"
                           >
-                            Create Loan
+                            Supply & Borrow
                             <ArrowRight className="ml-2 h-4 w-4" />
                           </Button>
                         </div>

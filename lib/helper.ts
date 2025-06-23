@@ -1,9 +1,28 @@
-const formatNumber = (num: string | number, decimals = 2) => {
-    const value = typeof num === "string" ? Number.parseFloat(num) : num
-    if (value >= 1000000) return `${(value / 1000000).toFixed(decimals)}M`
-    if (value >= 1000) return `${(value / 1000).toFixed(decimals)}K`
-    return value.toFixed(decimals)
+const formatNumber = (num: string | number, options?: {
+  decimals?: number;
+  preserveSmallNumbers?: boolean;
+}) : string => {
+  const value = typeof num === "string" ? Number.parseFloat(num) : num;
+  const { decimals = 1, preserveSmallNumbers = true } = options || {};
+  
+  // Handle very small numbers (common in DeFi for precise token amounts)
+  if (preserveSmallNumbers && value > 0 && value < 1) {
+    return value.toFixed(6); // Show 6 decimals for small amounts
   }
+  
+  // Handle zero and negative
+  if (value === 0) return "0";
+  if (value < 0) return `-${formatNumber(Math.abs(value), options)}`;
+  
+  // Format large numbers
+  if (value >= 1_000_000_000_000) return `${(value / 1_000_000_000_000).toFixed(decimals)}T`;
+  if (value >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(decimals)}B`;
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(decimals)}M`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(decimals)}K`;
+  
+  // For numbers < 1000, show with reasonable precision
+  return value % 1 === 0 ? value.toString() : value.toFixed(2);
+};
 
   const formatPercentage = (bps: string) => {
     return `${(Number.parseInt(bps) / 100).toFixed(2)}%`

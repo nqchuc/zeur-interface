@@ -257,3 +257,16 @@ export const userDebtPositions = [
       rate: "0%",
     },
   ]
+
+
+export const ASSET_METADATA: Record<string, { symbol: string; name: string; icon: string; color: string; protocols: string[] }> = {
+  // Add your asset metadata here based on contract addresses
+  "0x8Cd770860726aab1151D6d9D7F05Fab9D4C68Ef4": { symbol: 'EURC', name: 'Euro Coin', icon: 'https://s2.coinmarketcap.com/static/img/coins/64x64/20641.png', color: '#8b5cf6', protocols: ['Morpho', 'Aave'] },
+  '0x5678...EURI': { symbol: 'EURI', name: 'Euro Stablecoin', icon: '💶', color: '#06b6d4', protocols: ['Compound', 'Morpho'] },
+  '0x9abc...USDC': { symbol: 'USDC', name: 'USD Coin', icon: '💵', color: '#2775CA', protocols: ['Aave', 'Compound'] },
+  // Collateral Assets
+    '0xdef0...ETH': { symbol: 'ETH', name: 'Ethereum', icon: '🔷', color: '#627EEA', protocols: ['Lido', 'RocketPool'] },
+    '0x1111...stETH': { symbol: 'stETH', name: 'Staked Ethereum', icon: '🟣', color: '#00A3FF', protocols: ['Lido'] },
+    '0x2222...WBTC': { symbol: 'WBTC', name: 'Wrapped Bitcoin', icon: '🟠', color: '#F7931A', protocols: [] },
+  "0x779877A7B0D9E8603169DdbD7836e478b4624789": { symbol: 'LINK', name: 'Chainlink', icon: 'https://s2.coinmarketcap.com/static/img/coins/64x64/1975.png', color: '#375BD2', protocols: [] },
+}

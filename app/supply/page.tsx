@@ -14,10 +14,12 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { debtAssets, userCollateralPositions } from "@/lib/constants"
 import { formatNumber, formatPercentage, formatUtilization } from "@/lib/helper"
+import { useSupply } from "@/hooks/contexts/SupplyHookContext"
 
 export default function SupplyPage() {
-      const [paymentMethod, setPaymentMethod] = useState("crypto")
-      const [selectedLendAsset, setSelectedLendAsset] = useState("EURC")
+    const [paymentMethod, setPaymentMethod] = useState("crypto")
+    const [selectedLendAsset, setSelectedLendAsset] = useState("EURC")
+    const {debtAssets,} = useSupply();
 
   return (
     <div className="space-y-4">
