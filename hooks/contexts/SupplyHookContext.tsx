@@ -1,6 +1,6 @@
 "use client"
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react'
-import { useAccount, useReadContract, useReadContracts } from 'wagmi'
+import { useAccount, useReadContract, useReadContracts, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 import { Address, formatUnits, parseUnits } from 'viem'
 import { 
   AssetData, 
@@ -9,14 +9,17 @@ import {
   FormattedAssetData, 
   FormattedUserDebtData 
 } from '@/types/contracts'
-import { UIPoolDataABI } from '@/contracts/UIPoolData'
+import { UI_POOL_DATA_ADDRESS, UIPoolDataABI } from '@/contracts/UIPoolData'
+import { PoolABI, POOL_ADDRESS } from '@/contracts/Pool' // Import from your first file
 import { ASSET_METADATA } from '@/lib/constants'
+import { useGasEstimation } from '@/hooks/useGasEstimation'
 
-// Contract address - update this with your deployed contract
-const UI_POOL_DATA_ADDRESS = process.env.NEXT_PUBLIC_UI_POOL_DATA_ADDRESS as Address || '0x0000000000000000000000000000000000000000'
-
-// Asset metadata (symbols, names, icons, etc.)
-
+interface SupplyFunctionParams {
+  asset: Address
+  amount: string // Amount in human readable format (will be converted to wei)
+  decimals: number // Asset decimals for conversion
+  isNativeToken?: boolean // Whether this is ETH or native token (no approval needed)
+}
 
 interface SupplyContextValue {
   // Asset data
@@ -32,11 +35,38 @@ interface SupplyContextValue {
   errorUserData: Error | null
   refetchUserData: () => void
   
-  // Pagination
-  // currentPage: number
-  // totalPages: number
-  // setCurrentPage: (page: number) => void
-  // paginatedAssets: FormattedAssetData[]
+  // Supply function
+  supply: (params: SupplyFunctionParams) => Promise<void>
+  isSupplying: boolean
+  supplyError: Error | null
+  supplyTxHash: Address | undefined
+  isSupplyConfirming: boolean
+  isSupplyConfirmed: boolean
+  supplyReceipt: any | undefined
+  resetSupplyState: () => void
+  
+  // Gas estimation (automatically triggered)
+  gasEstimation: {
+    gasLimit: bigint | undefined
+    gasPrice: bigint | undefined
+    gasCost: bigint | undefined
+    gasCostInEth: string
+    gasCostInGwei: string
+    isLoading: boolean
+    error: Error | null
+  }
+  resetGasEstimation: () => void
+  
+  // Token approval state
+  approvalState: {
+    isNeeded: boolean
+    isApproving: boolean
+    isApproved: boolean
+    approvalTxHash: Address | undefined
+    approvalError: Error | null
+    currentAllowance: bigint | undefined
+  }
+  resetApprovalState: () => void
   
   // Helpers
   formatNumber: (value: string | number) => string
@@ -46,11 +76,44 @@ interface SupplyContextValue {
 
 const SupplyContext = createContext<SupplyContextValue | undefined>(undefined)
 
-const ITEMS_PER_PAGE = 10
-
 export function SupplyProvider({ children }: { children: React.ReactNode }) {
   const { address: userAddress } = useAccount()
-  const [currentPage, setCurrentPage] = useState(1)
+  
+  // Gas estimation and approval hook
+  const {
+    gasLimit,
+    gasPrice,
+    gasCost,
+    gasCostInEth,
+    gasCostInGwei,
+    isLoading: isGasLoading,
+    error: gasError,
+    estimateGas,
+    resetEstimation,
+    // Approval functions
+    handleTokenApproval,
+    getApprovalState,
+    resetApprovalState,
+    isLoadingAllowance
+  } = useGasEstimation()
+  
+  // Supply contract write hook
+  const {
+    writeContract: writeSupply,
+    data: supplyTxHash,
+    isPending: isSupplying,
+    error: supplyError,
+    reset: resetSupply
+  } = useWriteContract()
+  
+  // Wait for transaction confirmation
+  const {
+    isLoading: isSupplyConfirming,
+    isSuccess: isSupplyConfirmed,
+    data: supplyReceipt
+  } = useWaitForTransactionReceipt({
+    hash: supplyTxHash,
+  })
   
   // Fetch debt asset list
   const { data: debtAssetList, isLoading: isLoadingList, error: errorList, refetch: refetchList } = useReadContract({
@@ -165,12 +228,93 @@ export function SupplyProvider({ children }: { children: React.ReactNode }) {
     })
   }, [userData, formattedAssets])
   
-  // Pagination
-  // const totalPages = Math.ceil(formattedAssets.length / ITEMS_PER_PAGE)
-  // const paginatedAssets = formattedAssets.slice(
-  //   (currentPage - 1) * ITEMS_PER_PAGE,
-  //   currentPage * ITEMS_PER_PAGE
-  // )
+  // Supply function with automatic approval and gas estimation
+  const supply = async ({ asset, amount, decimals, isNativeToken = false }: SupplyFunctionParams) => {
+    if (!userAddress) {
+      throw new Error('User not connected')
+    }
+    
+    try {
+      const amountInWei = parseUnits(amount, decimals)
+      
+      // Step 1: Handle token approval for ERC20 tokens (skip for native tokens like ETH)
+      if (!isNativeToken) {
+        console.log('Checking token approval...')
+        
+        const approvalSuccess = await handleTokenApproval({
+          tokenAddress: asset,
+          spenderAddress: POOL_ADDRESS,
+          amount: amountInWei,
+          userAddress
+        })
+        
+        if (!approvalSuccess) {
+          throw new Error('Token approval failed or was cancelled')
+        }
+        
+        console.log('Token approval completed successfully')
+      }
+      
+      // Step 2: Estimate gas for supply transaction
+      console.log('Estimating gas for supply transaction...')
+      await estimateGas({
+        address: POOL_ADDRESS,
+        abi: PoolABI,
+        functionName: 'supply',
+        args: [asset, amountInWei, userAddress],
+        account: userAddress,
+        // Add ETH value for native token supply
+        value: isNativeToken ? amountInWei : undefined,
+      })
+      
+      // Wait a bit for gas estimation to complete
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      
+      if (gasError) {
+        throw new Error(`Gas estimation failed: ${gasError.message}`)
+      }
+      
+      console.log('Gas estimated, proceeding with supply transaction...')
+      
+      // Step 3: Execute supply transaction
+      writeSupply({
+        address: POOL_ADDRESS,
+        abi: PoolABI,
+        functionName: 'supply',
+        args: [asset, amountInWei, userAddress],
+        gas: gasLimit, // Use estimated gas limit
+        value: isNativeToken ? amountInWei : undefined, // Add ETH value for native token
+      })
+    } catch (error) {
+      console.error('Error in supply process:', error)
+      throw error
+    }
+  }
+  
+  // Reset supply state
+  const resetSupplyState = () => {
+    resetSupply()
+  }
+  
+  // Reset gas estimation
+  const resetGasEstimation = () => {
+    resetEstimation()
+  }
+  
+  // Auto-refetch data when supply is confirmed
+  useEffect(() => {
+    if (isSupplyConfirmed) {
+      // Refetch both asset and user data after successful supply
+      refetchData()
+      refetchUser()
+      
+      // Reset all states after successful transaction
+      setTimeout(() => {
+        resetGasEstimation()
+        resetApprovalState()
+      }, 2000) // Wait 2 seconds before resetting for better UX
+    }
+  }, [isSupplyConfirmed, refetchData, refetchUser, resetEstimation, resetApprovalState])
   
   // Helper functions
   const formatNumber = (value: string | number) => {
@@ -205,10 +349,31 @@ export function SupplyProvider({ children }: { children: React.ReactNode }) {
     errorUserData: errorUser || null,
     refetchUserData: refetchUser,
     
-    // currentPage,
-    // totalPages,
-    // setCurrentPage,
-    // paginatedAssets,
+    // Supply function and states
+    supply,
+    isSupplying,
+    supplyError,
+    supplyTxHash,
+    isSupplyConfirming,
+    isSupplyConfirmed,
+    supplyReceipt,
+    resetSupplyState,
+    
+    // Gas estimation (automatic)
+    gasEstimation: {
+      gasLimit,
+      gasPrice,
+      gasCost,
+      gasCostInEth,
+      gasCostInGwei,
+      isLoading: isGasLoading,
+      error: gasError,
+    },
+    resetGasEstimation,
+    
+    // Token approval state
+    approvalState: getApprovalState(),
+    resetApprovalState,
     
     formatNumber,
     formatPercentage,

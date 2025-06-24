@@ -10,13 +10,15 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { useAccount, useConnect } from "wagmi"
+import { useAccount, useConnect, useDisconnect } from "wagmi"
 
 export default function Navbar() {
   const pathname = usePathname()
 
   const {isConnected} = useAccount();
-  const { connect, connectors } = useConnect()
+  const { connect, connectors,  } = useConnect()
+  const { disconnect } = useDisconnect()
+
 
 
   const navItems = [
@@ -63,9 +65,9 @@ export default function Navbar() {
           }
          {
             isConnected ? <Button className="btn-secondary-dark rounded-lg">
-            <Wallet className="h-4 w-4 mr-2" />
+            <Wallet onClick={() => disconnect()} className="h-4 w-4 mr-2" />
             0x1234...5678
-          </Button> :          <Button onClick={() => connect({ connector: connectors[0]})} className="btn-primary-purple rounded-lg px-6 py-2">Connect Wallet</Button>
+          </Button> :          <Button onClick={() => connect({ connector: connectors[1]})} className="btn-primary-purple rounded-lg px-6 py-2">Connect Wallet</Button>
 
          }
           

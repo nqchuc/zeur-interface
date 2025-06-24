@@ -9,14 +9,8 @@ import {
   FormattedAssetData,
   UserCollateralData
 } from '@/types/contracts'
-import { UIPoolDataABI } from '@/contracts/UIPoolData'
+import { UI_POOL_DATA_ADDRESS, UIPoolDataABI } from '@/contracts/UIPoolData'
 import { ASSET_METADATA } from '@/lib/constants'
-
-// Contract address - same as supply
-const UI_POOL_DATA_ADDRESS = process.env.NEXT_PUBLIC_UI_POOL_DATA_ADDRESS as Address || '0x0000000000000000000000000000000000000000'
-
-// Reuse asset metadata from SupplyHookContext
-
 
 export interface FormattedCollateralData extends FormattedAssetData {
   ltv: string

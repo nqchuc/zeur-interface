@@ -61,7 +61,7 @@ export interface UserData {
 // UI formatted types
 export interface FormattedAssetData {
   assetType: AssetType
-  asset: string
+  asset: Address
   symbol: string
   name: string
   icon: string
