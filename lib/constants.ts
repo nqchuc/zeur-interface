@@ -201,7 +201,7 @@ export const collateralAssets = [
 
 export const ASSET_METADATA: Record<string, { symbol: string; name: string; icon: string; color: string; protocols: string[] }> = {
   // Debt Assets (Stablecoins)
-  "0x8Cd770860726aab1151D6d9D7F05Fab9D4C68Ef4": { 
+  "0xf170643aD2209E4cD9b17ddF8417D537E894d3e9": { 
     symbol: 'EURC', 
     name: 'Euro Coin', 
     icon: 'https://s2.coinmarketcap.com/static/img/coins/64x64/20641.png', 

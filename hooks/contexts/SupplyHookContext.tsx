@@ -76,6 +76,10 @@ export function SupplyProvider({ children }: { children: React.ReactNode }) {
   const { data: assetsData, isLoading: isLoadingData, error: errorData, refetch: refetchData } = useReadContracts({
     contracts: assetDataCalls,
   })
+
+  useEffect(() => {
+    console.log(errorData, "ERROR DATA")
+  }, [errorData])
   
   // Fetch user data
   const { data: userData, isLoading: isLoadingUser, error: errorUser, refetch: refetchUser } = useReadContract({
@@ -95,7 +99,7 @@ export function SupplyProvider({ children }: { children: React.ReactNode }) {
         if (result.status !== 'success' || !result.result) return null
         
         const assetData : any = result.result 
-        const assetAddress = assetData.debtToken
+        const assetAddress = debtAssetList[index]
         const metadata = ASSET_METADATA[assetAddress] || {
           symbol: 'UNKNOWN',
           name: 'Unknown Asset',
