@@ -10,9 +10,9 @@ import {
   FormattedUserDebtData 
 } from '@/types/contracts'
 import { UI_POOL_DATA_ADDRESS, UIPoolDataABI } from '@/contracts/UIPoolData'
-import { PoolABI, POOL_ADDRESS } from '@/contracts/Pool' // Import from your first file
+import { PoolABI, POOL_ADDRESS } from '@/contracts/Pool'
 import { ASSET_METADATA } from '@/lib/constants'
-import { useGasEstimation } from '@/hooks/useGasEstimation'
+import { usePreTransactions } from '@/hooks/usePreTransactions'
 
 interface SupplyFunctionParams {
   asset: Address
@@ -20,6 +20,8 @@ interface SupplyFunctionParams {
   decimals: number // Asset decimals for conversion
   isNativeToken?: boolean // Whether this is ETH or native token (no approval needed)
 }
+
+type SupplyStep = 'idle' | 'preparing' | 'executing' | 'confirming' | 'completed' | 'error'
 
 interface SupplyContextValue {
   // Asset data
@@ -37,36 +39,33 @@ interface SupplyContextValue {
   
   // Supply function
   supply: (params: SupplyFunctionParams) => Promise<void>
-  isSupplying: boolean
-  supplyError: Error | null
+  supplyStep: SupplyStep
+  supplyError: string | null
   supplyTxHash: Address | undefined
+  isSupplying: boolean
   isSupplyConfirming: boolean
   isSupplyConfirmed: boolean
   supplyReceipt: any | undefined
   resetSupplyState: () => void
   
-  // Gas estimation (automatically triggered)
-  gasEstimation: {
+  // Pre-transaction state (approval + gas estimation)
+  preTransactionState: {
+    currentStep: string
+    isProcessing: boolean
+    isReady: boolean
+    error: string | null
+    currentAllowance: bigint | undefined
+    needsApproval: boolean
+    approvalTxHash: Address | undefined
+    isApproving: boolean
     gasLimit: bigint | undefined
     gasPrice: bigint | undefined
     gasCost: bigint | undefined
     gasCostInEth: string
     gasCostInGwei: string
-    isLoading: boolean
-    error: Error | null
+    isEstimatingGas: boolean
+    statusMessage: string
   }
-  resetGasEstimation: () => void
-  
-  // Token approval state
-  approvalState: {
-    isNeeded: boolean
-    isApproving: boolean
-    isApproved: boolean
-    approvalTxHash: Address | undefined
-    approvalError: Error | null
-    currentAllowance: bigint | undefined
-  }
-  resetApprovalState: () => void
   
   // Helpers
   formatNumber: (value: string | number) => string
@@ -78,31 +77,19 @@ const SupplyContext = createContext<SupplyContextValue | undefined>(undefined)
 
 export function SupplyProvider({ children }: { children: React.ReactNode }) {
   const { address: userAddress } = useAccount()
+  const [supplyStep, setSupplyStep] = useState<SupplyStep>('idle')
+  const [supplyError, setSupplyError] = useState<string | null>(null)
+  const [currentSupplyParams, setCurrentSupplyParams] = useState<SupplyFunctionParams | null>(null)
   
-  // Gas estimation and approval hook
-  const {
-    gasLimit,
-    gasPrice,
-    gasCost,
-    gasCostInEth,
-    gasCostInGwei,
-    isLoading: isGasLoading,
-    error: gasError,
-    estimateGas,
-    resetEstimation,
-    // Approval functions
-    handleTokenApproval,
-    getApprovalState,
-    resetApprovalState,
-    isLoadingAllowance
-  } = useGasEstimation()
+  // Universal pre-transactions hook for approval and gas estimation
+  const preTransactions = usePreTransactions()
   
   // Supply contract write hook
   const {
     writeContract: writeSupply,
     data: supplyTxHash,
     isPending: isSupplying,
-    error: supplyError,
+    error: contractSupplyError,
     reset: resetSupply
   } = useWriteContract()
   
@@ -228,93 +215,118 @@ export function SupplyProvider({ children }: { children: React.ReactNode }) {
     })
   }, [userData, formattedAssets])
   
-  // Supply function with automatic approval and gas estimation
+  // Supply function with universal pre-transaction flow
   const supply = async ({ asset, amount, decimals, isNativeToken = false }: SupplyFunctionParams) => {
     if (!userAddress) {
       throw new Error('User not connected')
     }
     
     try {
+      console.log('🚀 Starting supply process for', amount, asset)
+      setCurrentSupplyParams({ asset, amount, decimals, isNativeToken })
+      setSupplyStep('preparing')
+      setSupplyError(null)
+      
       const amountInWei = parseUnits(amount, decimals)
       
-      // Step 1: Handle token approval for ERC20 tokens (skip for native tokens like ETH)
-      if (!isNativeToken) {
-        console.log('Checking token approval...')
-        
-        const approvalSuccess = await handleTokenApproval({
-          tokenAddress: asset,
-          spenderAddress: POOL_ADDRESS,
-          amount: amountInWei,
-          userAddress
-        })
-        
-        if (!approvalSuccess) {
-          throw new Error('Token approval failed or was cancelled')
-        }
-        
-        console.log('Token approval completed successfully')
-      }
-      
-      // Step 2: Estimate gas for supply transaction
-      console.log('Estimating gas for supply transaction...')
-      await estimateGas({
-        address: POOL_ADDRESS,
-        abi: PoolABI,
+      // Step 1: Prepare transaction (approval + gas estimation)
+      await preTransactions.prepare({
+        contractAddress: POOL_ADDRESS,
+        contractAbi: PoolABI,
         functionName: 'supply',
         args: [asset, amountInWei, userAddress],
-        account: userAddress,
-        // Add ETH value for native token supply
         value: isNativeToken ? amountInWei : undefined,
+        
+        // Token approval params (only for ERC20 tokens)
+        tokenAddress: isNativeToken ? undefined : asset,
+        tokenAmount: isNativeToken ? undefined : amountInWei,
+        spenderAddress: isNativeToken ? undefined : POOL_ADDRESS,
+        skipApproval: isNativeToken,
       })
       
-      // Wait a bit for gas estimation to complete
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      console.log('✅ Pre-transaction preparation completed')
       
-      if (gasError) {
-        throw new Error(`Gas estimation failed: ${gasError.message}`)
-      }
+    } catch (error) {
+      console.error('❌ Error in supply preparation:', error)
+      setSupplyError(error instanceof Error ? error.message : 'Unknown error')
+      setSupplyStep('error')
+    }
+  }
+  
+  // Effect to handle pre-transaction completion and execute supply
+  useEffect(() => {
+    if (supplyStep === 'preparing' && preTransactions.isReady && currentSupplyParams) {
+      console.log('🔥 Pre-transactions ready, executing supply transaction')
+      setSupplyStep('executing')
       
-      console.log('Gas estimated, proceeding with supply transaction...')
+      const amountInWei = parseUnits(currentSupplyParams.amount, currentSupplyParams.decimals)
       
-      // Step 3: Execute supply transaction
       writeSupply({
         address: POOL_ADDRESS,
         abi: PoolABI,
         functionName: 'supply',
-        args: [asset, amountInWei, userAddress],
-        gas: gasLimit, // Use estimated gas limit
-        value: isNativeToken ? amountInWei : undefined, // Add ETH value for native token
+        args: [currentSupplyParams.asset, amountInWei, userAddress],
+        gas: preTransactions.estimatedGasLimit,
+        value: currentSupplyParams.isNativeToken ? amountInWei : undefined,
       })
-    } catch (error) {
-      console.error('Error in supply process:', error)
-      throw error
     }
-  }
+  }, [supplyStep, preTransactions.isReady, currentSupplyParams, userAddress, writeSupply, preTransactions.estimatedGasLimit])
+  
+  // Effect to handle supply transaction states
+  useEffect(() => {
+    if (supplyStep === 'executing' && supplyTxHash) {
+      console.log('⏳ Supply transaction submitted, waiting for confirmation')
+      setSupplyStep('confirming')
+    }
+  }, [supplyStep, supplyTxHash])
+  
+  // Effect to handle supply completion
+  useEffect(() => {
+    if (supplyStep === 'confirming' && isSupplyConfirmed) {
+      console.log('🎉 Supply completed successfully!')
+      setSupplyStep('completed')
+    }
+  }, [supplyStep, isSupplyConfirmed])
+  
+  // Effect to handle pre-transaction errors
+  useEffect(() => {
+    if (supplyStep === 'preparing' && preTransactions.error) {
+      setSupplyError(preTransactions.error)
+      setSupplyStep('error')
+    }
+  }, [supplyStep, preTransactions.error])
+  
+  // Effect to handle contract errors
+  useEffect(() => {
+    if (contractSupplyError) {
+      setSupplyError(`Supply transaction failed: ${contractSupplyError.message}`)
+      setSupplyStep('error')
+    }
+  }, [contractSupplyError])
   
   // Reset supply state
   const resetSupplyState = () => {
+    setSupplyStep('idle')
+    setSupplyError(null)
+    setCurrentSupplyParams(null)
     resetSupply()
-  }
-  
-  // Reset gas estimation
-  const resetGasEstimation = () => {
-    resetEstimation()
+    preTransactions.reset()
   }
   
   // Auto-refetch data when supply is confirmed
   useEffect(() => {
     if (isSupplyConfirmed) {
+      console.log('🔄 Refreshing data after successful supply')
       // Refetch both asset and user data after successful supply
       refetchData()
       refetchUser()
       
-      // Reset all states after successful transaction
+      // Reset states after successful transaction (with delay for better UX)
       setTimeout(() => {
-        resetGasEstimation()
-        resetApprovalState()
-      }, 2000) // Wait 2 seconds before resetting for better UX
+        resetSupplyState()
+      }, 3000) // Wait 3 seconds before resetting
     }
-  }, [isSupplyConfirmed, refetchData, refetchUser, resetEstimation, resetApprovalState])
+  }, [isSupplyConfirmed, refetchData, refetchUser])
   
   // Helper functions
   const formatNumber = (value: string | number) => {
@@ -351,29 +363,33 @@ export function SupplyProvider({ children }: { children: React.ReactNode }) {
     
     // Supply function and states
     supply,
-    isSupplying,
+    supplyStep,
     supplyError,
     supplyTxHash,
+    isSupplying,
     isSupplyConfirming,
     isSupplyConfirmed,
     supplyReceipt,
     resetSupplyState,
     
-    // Gas estimation (automatic)
-    gasEstimation: {
-      gasLimit,
-      gasPrice,
-      gasCost,
-      gasCostInEth,
-      gasCostInGwei,
-      isLoading: isGasLoading,
-      error: gasError,
+    // Pre-transaction state (approval + gas estimation)
+    preTransactionState: {
+      currentStep: preTransactions.currentStep,
+      isProcessing: preTransactions.isProcessing,
+      isReady: preTransactions.isReady,
+      error: preTransactions.error,
+      currentAllowance: preTransactions.currentAllowance,
+      needsApproval: preTransactions.needsApproval,
+      approvalTxHash: preTransactions.approvalTxHash,
+      isApproving: preTransactions.isApproving,
+      gasLimit: preTransactions.gasLimit,
+      gasPrice: preTransactions.gasPrice,
+      gasCost: preTransactions.gasCost,
+      gasCostInEth: preTransactions.gasCostInEth,
+      gasCostInGwei: preTransactions.gasCostInGwei,
+      isEstimatingGas: preTransactions.isEstimatingGas,
+      statusMessage: preTransactions.statusMessage,
     },
-    resetGasEstimation,
-    
-    // Token approval state
-    approvalState: getApprovalState(),
-    resetApprovalState,
     
     formatNumber,
     formatPercentage,
