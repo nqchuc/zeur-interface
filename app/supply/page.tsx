@@ -21,45 +21,56 @@ export default function SupplyPage() {
     const [paymentMethod, setPaymentMethod] = useState("crypto")
     const [amount, setAmount] = useState("0")
     const [selectedLendAsset, setSelectedLendAsset] = useState<FormattedAssetData|null>(null)
+    
     const {
       supply,
-      isSupplying,
-      supplyError,
-      supplyTxHash,
-      isSupplyConfirming,
-      isSupplyConfirmed,
-      supplyReceipt,
-      resetSupplyState,
-      debtAssets,
+      transactionState,
+      resetTransaction,
+      debtAssets
     } = useSupply()
-
+  
+    // Handle supply submission
     const handleSupply = async () => {
-      console.log("TRIGGER")
       if (!amount || parseFloat(amount) <= 0) {
         alert('Please enter a valid amount')
         return
       }
-
-      if(!selectedLendAsset) {
-        alert('Please select a valid asset')
-        return
-      }
   
       try {
-        supply({
+        await supply({
           asset: selectedLendAsset!.asset,
           amount,
-          decimals: selectedLendAsset?.decimals 
+          decimals: selectedLendAsset!.decimals,
+          isNativeToken: false
         })
       } catch (error) {
         console.error('Supply error:', error)
       }
     }
-
+  
+    // Handle successful transaction
     useEffect(() => {
-      console.log(supplyError, "ERROR SUPPLy")
-    }, [supplyError])
-    
+      if (transactionState.isCompleted) {
+        alert(`Supply successful! Transaction: ${transactionState.txHash}`)
+        setAmount('')
+      }
+    }, [transactionState.isCompleted, transactionState.txHash])
+  
+    // Handle errors
+    useEffect(() => {
+      if (transactionState.error) {
+        alert(`Transaction failed: ${transactionState.error}`)
+      }
+    }, [transactionState.error])
+  
+    // Reset amount when transaction resets
+    useEffect(() => {
+      if (transactionState.currentStep === 'idle') {
+        setAmount('')
+      }
+    }, [transactionState.currentStep])
+  
+
 
   return (
     <div className="space-y-4">
