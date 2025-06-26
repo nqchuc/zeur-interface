@@ -26,9 +26,11 @@ export default function WithdrawModal({
   // Use the supply context which now includes withdraw functionality
   const {
     withdraw,
+    transactionState,
+    resetTransaction,
+    refetchAssets
   } = useSupply()
 
-  const {transactionState,isWithdrawTransaction} = useTransactions();
 
   // Handle withdraw submission
   const handleWithdraw = async () => {
@@ -87,26 +89,28 @@ export default function WithdrawModal({
 
   // Handle transaction completion - close modal when withdraw completes
   useEffect(() => {
-    if (transactionState.isCompleted && isWithdrawTransaction()) {
+    if (transactionState.isCompleted && transactionState.transactionType === "withdraw") {
       toast({
         title: "🎉 Withdrawal Successful",
-        description: `Successfully withdraw ${transactionState.metadata?.amount} ${transactionState.metadata?.symbol} from the pool`,
+        description: `Successfully withdraw ${transactionState.metadata?.amount} ${transactionState.metadata?.asset} from the pool`,
       })
+      refetchAssets()
+      resetTransaction()
       onClose()
       setWithdrawAmount("")
     }
-  }, [transactionState.isCompleted, isWithdrawTransaction, onClose])
+  }, [transactionState.isCompleted, onClose])
 
   // Handle transaction errors
   useEffect(() => {
-    if (transactionState.error && isWithdrawTransaction()) {
+    if (transactionState.error && transactionState.transactionType === "withdraw") {
       toast({
         variant: "destructive",
         title: "❌ Withdraw Failed",
         description: transactionState.error,
       })
     }
-  }, [transactionState.error, isWithdrawTransaction, toast])
+  }, [transactionState.error, toast])
 
   if (!isOpen) return null
 
@@ -191,7 +195,7 @@ export default function WithdrawModal({
                 value={withdrawAmount}
                 onChange={(e) => setWithdrawAmount(e.target.value)}
                 className="input-dark text-base py-3 pr-16 rounded-lg placeholder:text-slate-500 bg-slate-800 border-slate-600 text-white"
-                disabled={transactionState.isProcessing && isWithdrawTransaction()}
+                disabled={transactionState.isProcessing && transactionState.transactionType === "withdraw"}
               />
               <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                 <span className="text-sm text-slate-400">
@@ -210,7 +214,7 @@ export default function WithdrawModal({
                     variant="outline"
                     size="sm"
                     className="text-xs h-6 px-2 bg-slate-800 border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
-                    disabled={transactionState.isProcessing && isWithdrawTransaction()}
+                    disabled={transactionState.isProcessing && transactionState.transactionType === "withdraw"}
                     onClick={() => {
                       const maxAmount = parseFloat(selectedPosition?.supplyBalance || "0");
                       setWithdrawAmount((maxAmount * multiplier).toString());
@@ -231,16 +235,16 @@ export default function WithdrawModal({
               variant="outline"
               onClick={onClose}
               className="w-full sm:w-auto bg-slate-800 border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
-              disabled={transactionState.isProcessing && isWithdrawTransaction()}
+              disabled={transactionState.isProcessing && transactionState.transactionType === "withdraw"}
             >
               Cancel
             </Button>
             <Button
               onClick={handleWithdraw}
               className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white"
-              disabled={!withdrawAmount || parseFloat(withdrawAmount) <= 0 || (transactionState.isProcessing && isWithdrawTransaction())}
+              disabled={!withdrawAmount || parseFloat(withdrawAmount) <= 0 || (transactionState.isProcessing && transactionState.transactionType === "withdraw")}
             >
-              {transactionState.isProcessing && isWithdrawTransaction() ? transactionState.statusMessage : 'Withdraw'}
+              {transactionState.isProcessing && transactionState.transactionType === "withdraw" ? transactionState.statusMessage : 'Withdraw'}
             </Button>
           </div>
         </div>

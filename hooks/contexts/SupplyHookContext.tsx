@@ -12,7 +12,7 @@ import {
 import { UI_POOL_DATA_ADDRESS, UIPoolDataABI } from '@/contracts/UIPoolData'
 import { PoolABI, POOL_ADDRESS } from '@/contracts/Pool'
 import { ASSET_METADATA } from '@/lib/constants'
-import { useTransactions, ZeurTransactionType } from '@/hooks/useTransactions'
+import { TransactionState, useTransactions, ZeurTransactionType } from '@/hooks/useTransactions'
 
 interface SupplyFunctionParams {
   asset: Address
@@ -47,6 +47,10 @@ interface SupplyContextValue {
   supply: (params: SupplyFunctionParams) => Promise<void>
   withdraw: (params: WithdrawFunctionParams) => Promise<void>
 
+  // tx state
+  transactionState: TransactionState
+  resetTransaction: () => void
+
   
   // Helpers
   formatNumber: (value: string | number) => string
@@ -60,7 +64,7 @@ export function SupplyProvider({ children }: { children: React.ReactNode }) {
   const { address: userAddress } = useAccount()
   
   // Universal transactions hook
-  const transactions = useTransactions()
+  const {execute, transactionState, reset} = useTransactions()
   
   // Fetch debt asset list
   const { data: debtAssetList, isLoading: isLoadingList, error: errorList, refetch: refetchList } = useReadContract({
@@ -216,22 +220,22 @@ export function SupplyProvider({ children }: { children: React.ReactNode }) {
     }
     
     // Execute transaction (handles approval + execution automatically)
-    await transactions.execute(transactionRequest)
+    await execute(transactionRequest)
   }
   
   // Auto-refetch data when transaction is completed
-  useEffect(() => {
-    if (transactions.transactionState.isCompleted) {
-      console.log('🔄 Refreshing data after successful supply')
-      refetchData()
-      refetchUser()
+  // useEffect(() => {
+  //   if (transactions.transactionState.isCompleted) {
+  //     console.log('🔄 Refreshing data after successful supply')
+  //     refetchData()
+  //     refetchUser()
       
-      // Reset transaction after 3 seconds for better UX
-      setTimeout(() => {
-        transactions.reset()
-      }, 3000)
-    }
-  }, [transactions.transactionState.isCompleted, refetchData, refetchUser, transactions.reset])
+  //     // Reset transaction after 3 seconds for better UX
+  //     setTimeout(() => {
+  //       transactions.reset()
+  //     }, 3000)
+  //   }
+  // }, [transactions.transactionState.isCompleted, refetchData, refetchUser, transactions.reset])
 
 
   const withdraw = async ({ asset, amount, decimals }: WithdrawFunctionParams) => {
@@ -263,7 +267,7 @@ export function SupplyProvider({ children }: { children: React.ReactNode }) {
     }
     
     // Execute transaction
-    await transactions.execute(transactionRequest)
+    await execute(transactionRequest)
   }
   
   // Helper functions
@@ -291,6 +295,7 @@ export function SupplyProvider({ children }: { children: React.ReactNode }) {
     refetchAssets: () => {
       refetchList()
       refetchData()
+      refetchUser()
     },
     
     userData: userData || null,
@@ -306,6 +311,9 @@ export function SupplyProvider({ children }: { children: React.ReactNode }) {
     formatNumber,
     formatPercentage,
     formatUtilization,
+
+    transactionState,
+    resetTransaction: reset,
   }
   
   return (

@@ -33,7 +33,7 @@ interface TransactionRequest {
 
 type TransactionStep = 'idle' | 'checking-approval' | 'approving' | 'executing' | 'confirming' | 'completed' | 'error'
 
-interface TransactionState {
+export interface TransactionState {
   currentStep: TransactionStep
   isProcessing: boolean
   isCompleted: boolean
@@ -60,6 +60,11 @@ export function useTransactions() {
   const [currentStep, setCurrentStep] = useState<TransactionStep>('idle')
   const [error, setError] = useState<string | null>(null)
   const [transactionRequest, setTransactionRequest] = useState<TransactionRequest | null>(null)
+  
+  // Debug logging for currentStep changes
+  useEffect(() => {
+    console.log(`🔄 Transaction step changed: ${currentStep}`)
+  }, [currentStep])
   
   // Token allowance check (only when approval is needed)
   const { 
@@ -174,6 +179,8 @@ export function useTransactions() {
         args: transactionRequest.writeContract.args || [], // Provide default empty array
       }
       
+      console.log('📋 Contract params:', contractParams)
+      
       writeMainTransaction(contractParams)
       setCurrentStep('confirming')
     }
@@ -181,6 +188,8 @@ export function useTransactions() {
   
   // Handle transaction completion
   useEffect(() => {
+    console.log(`🔍 Checking completion: step=${currentStep}, confirmed=${isTransactionConfirmed}`)
+    
     if (currentStep === 'confirming' && isTransactionConfirmed) {
       console.log(`🎉 ${transactionRequest?.type} transaction completed successfully!`)
       setCurrentStep('completed')
@@ -190,10 +199,12 @@ export function useTransactions() {
   // Handle errors
   useEffect(() => {
     if (approvalError) {
+      console.error('❌ Approval error:', approvalError)
       setError(`Approval failed: ${approvalError.message}`)
       setCurrentStep('error')
     }
     if (transactionError) {
+      console.error('❌ Transaction error:', transactionError)
       setError(`Transaction failed: ${transactionError.message}`)
       setCurrentStep('error')
     }
@@ -220,6 +231,7 @@ export function useTransactions() {
   
   // Reset function
   const reset = useCallback(() => {
+    console.log('🔄 Resetting transaction state')
     setCurrentStep('idle')
     setError(null)
     setTransactionRequest(null)
@@ -258,7 +270,7 @@ export function useTransactions() {
   }
   
   // Build transaction state
-  const state: TransactionState = {
+  const transactionState: TransactionState = {
     currentStep,
     isProcessing: currentStep !== 'idle' && currentStep !== 'completed' && currentStep !== 'error',
     isCompleted: currentStep === 'completed',
@@ -286,12 +298,12 @@ export function useTransactions() {
     reset,
     
     // State
-    transactionState: state,
+    transactionState,
     
     // Helper functions for checking transaction type
-    isSupplyTransaction: () => state.transactionType === 'supply',
-    isWithdrawTransaction: () => state.transactionType === 'withdraw',
-    isBorrowTransaction: () => state.transactionType === 'borrow',
-    isRepayTransaction: () => state.transactionType === 'repay',
+    isSupplyTransaction: () => transactionState.transactionType === 'supply',
+    isWithdrawTransaction: () => transactionState.transactionType === 'withdraw',
+    isBorrowTransaction: () => transactionState.transactionType === 'borrow',
+    isRepayTransaction: () => transactionState.transactionType === 'repay',
   }
 }

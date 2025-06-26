@@ -11,14 +11,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { debtAssets, userCollateralPositions, userSupplyPositions } from "@/lib/constants"
 import { formatNumber, formatPercentage, formatUtilization } from "@/lib/helper"
 import { useSupply } from "@/hooks/contexts/SupplyHookContext"
 import { FormattedAssetData } from "@/types/contracts"
 import { useToast } from "@/hooks/useToast"
 import WithdrawModal from "@/components/modal/WithdrawModal"
-import { useTransactions } from "@/hooks/useTransactions"
 
 export default function SupplyPage() {
     const [paymentMethod, setPaymentMethod] = useState("crypto")
@@ -32,10 +29,12 @@ export default function SupplyPage() {
     const {
       supply,
       debtAssets,
-      userDebtPositions
+      userDebtPositions,
+      refetchAssets,
+      transactionState,
+      resetTransaction
     } = useSupply()
 
-    const { transactionState} = useTransactions();
   
   
     // Handle supply submission 
@@ -88,31 +87,22 @@ export default function SupplyPage() {
     }
   }
 
-  const handleWithdraw = () => {
-    // resetTransaction()
-  }
-
   // Enhanced success handling
   useEffect(() => {
+    console.log(transactionState, "STATE PAGE SUPPLY")
     if (transactionState.isCompleted) {
-      setAmount('')
+        setAmount('')
       
-      // Show additional success information
        if (transactionState.transactionType === 'supply'){
+        refetchAssets()
+        resetTransaction()
         toast({
           title: "🎉 Supply Successful",
-          description: `Successfully supplied ${transactionState.metadata?.amount} ${transactionState.metadata?.symbol}to the pool`,
+          description: `Successfully supplied ${transactionState.metadata?.amount} ${transactionState.metadata?.asset}to the pool`,
         })
       }
     }
-  }, [transactionState.isCompleted, amount, selectedLendAsset])
-
-  // Reset amount when transaction resets
-  useEffect(() => {
-    if (transactionState.currentStep === 'idle') {
-      setAmount('')
-    }
-  }, [transactionState.currentStep])
+  }, [transactionState.isCompleted, transactionState, selectedLendAsset])
 
   useEffect(() => {
     if(debtAssets[0]){
@@ -329,22 +319,10 @@ export default function SupplyPage() {
                         </div>
 
                         {/* Amount Input */}
-                        <div className="space-y-2">
-                          <Label htmlFor="deposit-amount" className="text-sm font-semibold text-white">
-                            Deposit Amount
-                          </Label>
-                          <Input
-                            value={amount}
-                            onChange={(e) => setAmount(e.target.value)}
-                            id="deposit-amount"
-                            type="number"
-                            placeholder="1000"
-                            className="input-dark text-base py-3 rounded-lg placeholder:text-slate-500"
-                          />
-                        </div>
+                        
 
                         {/* Duration Selector */}
-                        <div className="space-y-3">
+                        {/* <div className="space-y-3">
                           <Label className="text-sm font-semibold text-white">Lock Duration (Optional)</Label>
                           <div className="flex space-x-2">
                             {["Flexible", "30 Days", "90 Days", "180 Days"].map((duration, index) => (
@@ -360,69 +338,33 @@ export default function SupplyPage() {
                           <p className="text-xs text-slate-400">
                             Longer lock periods earn higher APY. Flexible deposits can be withdrawn anytime.
                           </p>
-                        </div>
+                        </div> */}
                       </div>
 
                       {/* Right Column */}
                       <div className="md:col-span-5 space-y-3">
+                      <div className="space-y-2">
+                          <Label htmlFor="deposit-amount" className="text-sm font-semibold text-white">
+                            Deposit Amount
+                          </Label>
+                          <Input
+                            value={amount}
+                            onChange={(e) => setAmount(e.target.value)}
+                            id="deposit-amount"
+                            type="number"
+                            placeholder="1000"
+                            className="input-dark text-base py-3 rounded-lg placeholder:text-slate-500"
+                          />
+                        </div>
                         <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-lg p-4 border border-blue-500/20">
-                          <h3 className="text-sm font-semibold text-white mb-3">Strategy Selection</h3>
-
+                          <h3 className="text-sm font-semibold text-white mb-3">Review Selection</h3>
+                            
                           <div className="space-y-3">
-                            <Tabs defaultValue="balanced" className="w-full">
-                              <TabsList className="grid grid-cols-3 mb-3 bg-slate-800/50 h-8">
-                                <TabsTrigger
-                                  value="conservative"
-                                  className="rounded-l-lg text-slate-300 data-[state=active]:bg-slate-700 data-[state=active]:text-white text-xs"
-                                >
-                                  Conservative
-                                </TabsTrigger>
-                                <TabsTrigger
-                                  value="balanced"
-                                  className="border-x border-slate-600 text-slate-300 data-[state=active]:bg-slate-700 data-[state=active]:text-white text-xs"
-                                >
-                                  Balanced
-                                </TabsTrigger>
-                                <TabsTrigger
-                                  value="aggressive"
-                                  className="rounded-r-lg text-slate-300 data-[state=active]:bg-slate-700 data-[state=active]:text-white text-xs"
-                                >
-                                  Aggressive
-                                </TabsTrigger>
-                              </TabsList>
-                              <TabsContent value="conservative">
-                                <Card className="card-dark border-green-500/20">
+                              <Card className="card-dark border-blue-500/20">
                                   <CardContent className="p-3">
                                     <div className="flex justify-between items-center mb-2">
                                       <span className="text-xs text-slate-400">Expected APY</span>
-                                      <span className="text-base font-bold text-green-400">6.2%</span>
-                                    </div>
-                                    <div className="flex justify-between items-center mb-2">
-                                      <span className="text-xs text-slate-400">Risk Level</span>
-                                      <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
-                                        Low
-                                      </Badge>
-                                    </div>
-                                    <p className="text-xs text-slate-300 mb-2">
-                                      Stable returns with minimal risk. Primarily uses liquid staking protocols.
-                                    </p>
-                                    <div className="flex flex-wrap gap-1">
-                                      <Badge variant="outline" className="text-xs border-slate-600 text-slate-400">
-                                        Lido
-                                      </Badge>
-                                      <Badge variant="outline" className="text-xs border-slate-600 text-slate-400">
-                                        RocketPool
-                                      </Badge>
-                                    </div>
-                                  </CardContent>
-                                </Card>
-                              </TabsContent>
-                              <TabsContent value="balanced">
-                                <Card className="card-dark border-blue-500/20">
-                                  <CardContent className="p-3">
-                                    <div className="flex justify-between items-center mb-2">
-                                      <span className="text-xs text-slate-400">Expected APY</span>
-                                      <span className="text-base font-bold text-green-400">8.7%</span>
+                                      <span className="text-base font-bold text-green-400">{Number(selectedLendAsset?.supplyRate) / 100}%</span>
                                     </div>
                                     <div className="flex justify-between items-center mb-2">
                                       <span className="text-xs text-slate-400">Risk Level</span>
@@ -446,38 +388,6 @@ export default function SupplyPage() {
                                     </div>
                                   </CardContent>
                                 </Card>
-                              </TabsContent>
-                              <TabsContent value="aggressive">
-                                <Card className="card-dark border-yellow-500/20">
-                                  <CardContent className="p-3">
-                                    <div className="flex justify-between items-center mb-2">
-                                      <span className="text-xs text-slate-400">Expected APY</span>
-                                      <span className="text-base font-bold text-green-400">12.1%</span>
-                                    </div>
-                                    <div className="flex justify-between items-center mb-2">
-                                      <span className="text-xs text-slate-400">Risk Level</span>
-                                      <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-xs">
-                                        High
-                                      </Badge>
-                                    </div>
-                                    <p className="text-xs text-slate-300 mb-2">
-                                      Maximum returns for risk-tolerant users. Uses advanced yield strategies.
-                                    </p>
-                                    <div className="flex flex-wrap gap-1">
-                                      <Badge variant="outline" className="text-xs border-slate-600 text-slate-400">
-                                        Morpho
-                                      </Badge>
-                                      <Badge variant="outline" className="text-xs border-slate-600 text-slate-400">
-                                        Compound
-                                      </Badge>
-                                      <Badge variant="outline" className="text-xs border-slate-600 text-slate-400">
-                                        Yearn
-                                      </Badge>
-                                    </div>
-                                  </CardContent>
-                                </Card>
-                              </TabsContent>
-                            </Tabs>
 
                             <div className="bg-slate-800/50 rounded-lg p-3">
                               <div className="flex justify-between items-center mb-1">
@@ -522,7 +432,7 @@ export default function SupplyPage() {
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg font-bold text-white">Your Supply Positions</CardTitle>
                   <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 text-xs">
-                    {userSupplyPositions.length} Active
+                    {userDebtPositions.length} Active
                   </Badge>
                 </div>
               </CardHeader>
