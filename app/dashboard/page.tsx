@@ -233,14 +233,29 @@ export default function DashboardPage() {
                         {strategy.recommended && (
                           <Badge className="ml-1 bg-purple-500/20 text-purple-400 border-purple-500/30 text-xs">
                             <Star className="h-2 w-2 mr-1" />
-                            Best
+                            Current
                           </Badge>
                         )}
                       </div>
-                      <div className="text-xs text-slate-400">{strategy.risk} Risk</div>
+                      {/* <div className="text-xs text-slate-400">{strategy.risk} Risk</div> */}
+                      
                     </div>
                   </div>
-                  <div className="text-lg font-bold text-green-400">{strategy.apy}</div>
+                  {/* <div className="text-lg font-bold text-green-400">{strategy.apy}</div> */}
+                  <div className="flex flex-row gap-3 text-sm">
+                      <div>
+                        <div className="text-slate-400">Current Holding</div>
+                        <div className="font-semibold text-white">1000 EURC</div>
+                      </div>
+                      <div>
+                        <div className="text-slate-400">Current Holding USD</div>
+                        <div className="font-semibold text-white">1000 EURC</div>
+                      </div>
+                      <div>
+                        <div className="text-slate-400">APY</div>
+                        <div className="font-semibold text-green-400">{strategy.apy}</div>
+                      </div>
+                    </div>
                 </div>
               ))}
             </div>

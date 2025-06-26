@@ -295,25 +295,42 @@ export const vaultStrategies = [
     protocols: ["Lido"],
   },
   {
-    name: "Stablecoin Lending",
+    name: "Etherfi eETH",
     risk: "Low",
-    apy: "4.8%",
+    apy: "2.9%",
     color: "from-blue-500 to-blue-400",
     recommended: false,
-    description: "Lend stablecoins and earn interest with minimal risk.",
-    protocols: ["Aave", "Compound"],
+    description: "Stake your ETH with Ether.fi's liquid staking solution for competitive yields.",
+    protocols: ["Ether.fi"],
   },
   {
-    name: "DeFi Blue-Chip Vault",
+    name: "Rocket Pool rETH",
+    risk: "Low",
+    apy: "2.6%",
+    color: "from-orange-500 to-orange-400",
+    recommended: false,
+    description: "Decentralized ETH staking with Rocket Pool's community-driven protocol.",
+    protocols: ["Rocket Pool"],
+  },
+  {
+    name: "Morpho WETH",
     risk: "Medium",
-    apy: "8.7%",
+    apy: "2.5%",
     color: "from-purple-500 to-purple-400",
     recommended: false,
-    description: "Earn yield on a basket of blue-chip DeFi tokens.",
-    protocols: ["Aave", "Yearn", "Curve"],
+    description: "Optimize your WETH lending yields through Morpho's advanced lending protocol.",
+    protocols: ["Morpho"],
+  },
+  {
+    name: "StakeLink stLINK",
+    risk: "Low",
+    apy: "5.2%",
+    color: "from-cyan-500 to-cyan-400",
+    recommended: true,
+    description: "Stake your LINK and earn yield through liquid staking protocols.",
+    protocols: ["StakeLink"],
   },
 ]
-
 
 const LstList = {
 

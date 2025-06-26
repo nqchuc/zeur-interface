@@ -86,4 +86,6 @@ export interface FormattedUserDebtData {
   supplyBalance: string
   borrowBalance: string
   netBorrow: string
+  utilizationRate: string
+  supplyRate: string
 }

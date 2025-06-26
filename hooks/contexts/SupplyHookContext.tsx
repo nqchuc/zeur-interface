@@ -163,6 +163,8 @@ export function SupplyProvider({ children }: { children: React.ReactNode }) {
       
       // Find decimals from asset data
       const assetData = formattedAssets.find(a => a.asset === assetAddress)
+
+
       const decimals = assetData?.decimals || 18
       
       const supplyBalance = formatUnits(position.supplyBalance, decimals)
@@ -174,6 +176,8 @@ export function SupplyProvider({ children }: { children: React.ReactNode }) {
         symbol: metadata.symbol,
         name: metadata.name,
         icon: metadata.icon,
+        utilizationRate: assetData?.utilizationRate || '0',
+        supplyRate: assetData?.supplyRate || '0',
         supplyBalance,
         borrowBalance,
         netBorrow,

@@ -28,7 +28,8 @@ export default function SupplyPage() {
       supply,
       transactionState,
       resetTransaction,
-      debtAssets
+      debtAssets,
+      userDebtPositions
     } = useSupply()
   
   
@@ -101,6 +102,13 @@ export default function SupplyPage() {
       setAmount('')
     }
   }, [transactionState.currentStep])
+
+  useEffect(() => {
+    if(debtAssets[0]){
+      setSelectedLendAsset(debtAssets[0])
+    }
+  }, [debtAssets])
+  
 
 
 
@@ -511,7 +519,7 @@ export default function SupplyPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {userSupplyPositions.map((position, index) => (
+                      {userDebtPositions.map((position, index) => (
                         <tr key={index} className="border-b border-slate-800/50">
                           <td className="py-4">
                             <div className="flex items-center space-x-3">
@@ -528,7 +536,7 @@ export default function SupplyPage() {
                             <div className="text-xs text-slate-400">{position.symbol}</div>
                           </td>
                           <td className="text-right py-4">
-                            <div className="font-semibold text-white text-sm">${position.supplyBalanceUSD}</div>
+                            <div className="font-semibold text-white text-sm">${Number(position.supplyBalance) * 1.17}</div>
                             <div className="text-xs text-slate-400">{position.symbol}</div>
                           </td>
                           <td className="text-right py-4">
