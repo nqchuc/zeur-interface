@@ -224,10 +224,10 @@ export const ASSET_METADATA: Record<string, { symbol: string; name: string; icon
   },
   
   // Collateral Assets
-  '0xdef0...ETH': { 
+  '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE': { 
     symbol: 'ETH', 
     name: 'Ethereum', 
-    icon: '🔷', 
+    icon: 'https://s2.coinmarketcap.com/static/img/coins/64x64/1027.png', 
     color: '#627EEA', 
     protocols: ['Lido', 'RocketPool'] 
   },
