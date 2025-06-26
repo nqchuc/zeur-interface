@@ -185,6 +185,7 @@ export function SupplyProvider({ children }: { children: React.ReactNode }) {
       throw new Error('User not connected')
     }
     
+    console.log(decimals, "DECIMALS")
     const amountInWei = parseUnits(amount, decimals)
     
     // Create transaction request

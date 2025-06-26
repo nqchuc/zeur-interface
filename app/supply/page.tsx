@@ -16,12 +16,14 @@ import { debtAssets, userCollateralPositions, userSupplyPositions } from "@/lib/
 import { formatNumber, formatPercentage, formatUtilization } from "@/lib/helper"
 import { useSupply } from "@/hooks/contexts/SupplyHookContext"
 import { FormattedAssetData } from "@/types/contracts"
+import { useToast } from "@/hooks/useToast"
 
 export default function SupplyPage() {
     const [paymentMethod, setPaymentMethod] = useState("crypto")
     const [amount, setAmount] = useState("0")
     const [selectedLendAsset, setSelectedLendAsset] = useState<FormattedAssetData|null>(null)
-    
+    const { toast } = useToast()
+
     const {
       supply,
       transactionState,
@@ -29,47 +31,77 @@ export default function SupplyPage() {
       debtAssets
     } = useSupply()
   
-    // Handle supply submission
-    const handleSupply = async () => {
-      if (!amount || parseFloat(amount) <= 0) {
-        alert('Please enter a valid amount')
-        return
-      }
   
-      try {
-        await supply({
-          asset: selectedLendAsset!.asset,
-          amount,
-          decimals: selectedLendAsset!.decimals,
-          isNativeToken: false
-        })
-      } catch (error) {
-        console.error('Supply error:', error)
-      }
+    // Handle supply submission 
+  const handleSupply = async () => {
+    if (!amount) {
+      toast({
+        variant: "destructive",
+        title: "⚠️ Amount Required",
+        description: `Please enter the amount of ${selectedLendAsset?.symbol} you want to supply`,
+      })
+      return
     }
-  
-    // Handle successful transaction
-    useEffect(() => {
-      if (transactionState.isCompleted) {
-        alert(`Supply successful! Transaction: ${transactionState.txHash}`)
-        setAmount('')
-      }
-    }, [transactionState.isCompleted, transactionState.txHash])
-  
-    // Handle errors
-    useEffect(() => {
-      if (transactionState.error) {
-        alert(`Transaction failed: ${transactionState.error}`)
-      }
-    }, [transactionState.error])
-  
-    // Reset amount when transaction resets
-    useEffect(() => {
-      if (transactionState.currentStep === 'idle') {
-        setAmount('')
-      }
-    }, [transactionState.currentStep])
-  
+
+    const numericAmount = parseFloat(amount)
+    if (isNaN(numericAmount) || numericAmount <= 0) {
+      toast({
+        variant: "destructive",
+        title: "⚠️ Invalid Amount",
+        description: "Please enter a valid number greater than 0",
+      })
+      return
+    }
+
+    if (numericAmount > 1000000) {
+      toast({
+        variant: "destructive",
+        title: "⚠️ Amount Too Large",
+        description: "Please enter a reasonable amount",
+      })
+      return
+    }
+
+    try {
+      // Show initial toast to indicate process has started
+      toast({
+        title: "🚀 Starting Supply Process",
+        description: `Supplying ${amount} ${selectedLendAsset?.symbol} to the pool`,
+      })
+
+      await supply({
+        asset: selectedLendAsset!.asset,
+        amount,
+        decimals: selectedLendAsset!.decimals,
+        isNativeToken: false
+      })
+    } catch (error) {
+      console.error('Supply error:', error)
+      // Error handling is done in useTransactions hook
+    }
+  }
+
+  // Enhanced success handling
+  useEffect(() => {
+    if (transactionState.isCompleted) {
+      setAmount('')
+      
+      // Show additional success information
+      toast({
+        title: "✅ Supply Complete!",
+        variant: "success", 
+        description: `Successfully supplied ${amount} ${selectedLendAsset?.symbol}. Your balance has been updated.`,
+      })
+    }
+  }, [transactionState.isCompleted, amount, selectedLendAsset])
+
+  // Reset amount when transaction resets
+  useEffect(() => {
+    if (transactionState.currentStep === 'idle') {
+      setAmount('')
+    }
+  }, [transactionState.currentStep])
+
 
 
   return (

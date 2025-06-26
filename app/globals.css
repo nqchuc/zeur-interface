@@ -110,6 +110,30 @@
   box-shadow: 0 0 15px rgba(139, 92, 246, 0.2);
 }
 
+
+.toast-dark {
+  border-color: rgba(139, 92, 246, 0.5);
+  background: rgba(30, 41, 59, 0.8);
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.2);
+}
+
+
+/* Success toast - Green theme */
+.toast-success {
+  border-color: rgba(34, 197, 94, 0.5);      /* Green border with 50% opacity */
+  background: rgba(30, 41, 59, 0.8);          /* Same dark background */
+  box-shadow: 0 0 15px rgba(34, 197, 94, 0.2); /* Green glow with 20% opacity */
+           /* Green text color */
+}
+
+/* Error toast - Red theme */
+.toast-error {
+  border-color: rgba(239, 68, 68, 0.5);       /* Red border with 50% opacity */
+  background: rgba(30, 41, 59, 0.8);          /* Same dark background */
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.2); /* Red glow with 20% opacity */
+           /* Red text color */
+}
+
 .input-dark {
   background: rgba(30, 41, 59, 0.6);
   border: 1px solid rgba(51, 65, 85, 0.3);
