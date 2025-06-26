@@ -8,6 +8,8 @@ import { wagmiConfig } from '@/config/wagmiConfig'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { SupplyProvider } from '@/hooks/contexts/SupplyHookContext'
 import { BorrowProvider } from '@/hooks/contexts/BorrowHookContext'
+import { Toaster } from "@/components/ui/toaster"
+
 
 function Template({
   children,
@@ -31,6 +33,7 @@ function Template({
                         </div>
                     )}
                     {isLandingPage && children}
+                    <Toaster />
                   </div>
               </BorrowProvider>
             </SupplyProvider>
