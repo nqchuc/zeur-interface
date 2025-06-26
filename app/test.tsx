@@ -768,10 +768,10 @@ export default function ZeurLendingApp() {
                                         <div className="text-sm text-slate-400">{selectedAsset.name}</div>
                                       </div>
                                     </div>
-                                    <div className="text-right">
+                                    {/* <div className="text-right">
                                       <div className="font-bold text-green-400 text-lg">{selectedAsset.apy}</div>
                                       <div className="text-xs text-slate-400">Current APY</div>
-                                    </div>
+                                    </div> */}
                                   </div>
 
                                   <div className="grid grid-cols-3 gap-4">

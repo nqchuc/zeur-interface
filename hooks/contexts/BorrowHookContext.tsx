@@ -126,6 +126,7 @@ export function BorrowProvider({ children }: { children: React.ReactNode }) {
           protocols: metadata.protocols,
           color: metadata.color,
           ltv: assetData.ltv ? (assetData.ltv / 100).toFixed(1) : '0',
+          
           liquidationThreshold: assetData.liquidationThreshold ? (assetData.liquidationThreshold / 100).toFixed(1) : '0',
           liquidationBonus: assetData.liquidationBonus ? (assetData.liquidationBonus / 100).toFixed(1) : '0',
           // Add mock prices for demo - in production, get from price oracle

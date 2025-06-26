@@ -18,14 +18,16 @@
   import {  collateralAssets, userCollateralPositions,  } from "@/lib/constants"
   import { formatNumber, formatPercentage } from "@/lib/helper"
   import { useSupply } from "@/hooks/contexts/SupplyHookContext"
-  import { useBorrow } from "@/hooks/contexts/BorrowHookContext"
+  import { FormattedCollateralData, useBorrow } from "@/hooks/contexts/BorrowHookContext"
+import { FormattedAssetData } from "@/types/contracts"
 
   export default function BorrowPage() {
-    const [collateralAsset, setCollateralAsset] = useState("LINK")
+    const [collateralAsset, setCollateralAsset] = useState<FormattedCollateralData|null>(null)
     const [borrowAsset, setBorrowAsset] = useState("EURC")
     const [collateralAmount, setCollateralAmount] = useState("")
     const [borrowAmount, setBorrowAmount] = useState("")
-    const [ltv, setLtv] = useState([65])
+    const [maxLtv, setMaxLtv] = useState(0.0);
+    const [ltv, setLtv] = useState([0])
     const [autoRepay, setAutoRepay] = useState(false)
     const [stopLoss, setStopLoss] = useState("")
     const [takeProfit, setTakeProfit] = useState("")
@@ -38,10 +40,16 @@
 
     const calculateBorrowAmount = () => {
       if (!collateralAmount) return "0"
+      if (!collateralAsset) return "0"
+
+      console.log(collateralAsset.ltv , "LTV")
+
       const collateralValue =
         Number.parseFloat(collateralAmount) *
-        (collateralAssets.find((a) => a.symbol === collateralAsset)?.currentPrice || 0)
-      return (collateralValue * (ltv[0] / 100)).toFixed(2)
+        (collateralAssets.find((a) => a.symbol === collateralAsset?.symbol)?.currentPrice  || 0) 
+
+      return ((collateralValue  / 1.15) * ltv[0] / 100 ).toFixed(6)
+
     }
 
     const calculateHealthFactor = () => {
@@ -61,6 +69,16 @@
     useEffect(() => {
       console.log("colatteralAssets", collateralAssets)
     }, [collateralAssets])
+
+    useEffect(() => {
+      setMaxLtv(Number(collateralAsset?.ltv))
+    }, [collateralAsset])
+
+    useEffect(() => {
+      console.log(ltv, "LTV")
+    }, [ltv])
+    
+    
     
 
     return (
@@ -92,16 +110,16 @@
                           <div
                             key={index}
                             className={`card-dark rounded-lg p-3 cursor-pointer transition-all hover:glow-purple ${
-                              collateralAsset === asset.symbol ? "border-purple-500/50 glow-purple bg-purple-500/5" : ""
+                              collateralAsset?.symbol === asset.symbol ? "border-purple-500/50 glow-purple bg-purple-500/5" : ""
                             }`}
-                            onClick={() => setCollateralAsset(asset.symbol)}
+                            onClick={() => setCollateralAsset(asset)}
                           >
                             {/* First Row - Asset Info and APY */}
                             <div className="flex items-center justify-between mb-2">
                               <div className="flex items-center space-x-3">
                                 <img
                                   className={`w-8 h-8 rounded-full flex items-center justify-center text-lg ${
-                                    collateralAsset === asset.symbol
+                                    collateralAsset?.symbol === asset.symbol
                                       ? ""
                                       : `bg-[${asset.color}20]`
                                   }`}
@@ -112,7 +130,7 @@
                                 <div>
                                   <div className="font-semibold text-white text-sm flex items-center">
                                     {asset.symbol}
-                                    {collateralAsset === asset.symbol && (
+                                    {collateralAsset?.symbol === asset.symbol && (
                                       <Badge className="ml-2 bg-purple-500/20 text-purple-400 border-purple-500/30 text-xs">
                                         Selected
                                       </Badge>
@@ -121,10 +139,7 @@
                                   <div className="text-xs text-slate-400">{asset.name}</div>
                                 </div>
                               </div>
-                              <div className="text-right">
-                                <div className="font-bold text-green-400 text-base">{asset.apy}</div>
-                                <div className="text-xs text-slate-400">APY</div>
-                              </div>
+                      
                             </div>
 
                             {/* Second Row - Key Metrics */}
@@ -173,8 +188,8 @@
                           <div className="space-y-2">
                             <Label className="text-sm font-semibold text-white">Selected Collateral Asset</Label>
                             <div className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 rounded-lg p-4 border border-purple-500/20">
-                              {collateralAsset.length > 0 &&(() => {
-                                const selectedAsset = collateralAssets.find((a) => a.symbol === collateralAsset)
+                              {collateralAsset  && (() => {
+                                const selectedAsset = collateralAsset
                                 return selectedAsset ? (
                                   <div className="space-y-2">
                                     <div className="flex items-center justify-between">
@@ -187,10 +202,10 @@
                                           <div className="text-sm text-slate-400">{selectedAsset.name}</div>
                                         </div>
                                       </div>
-                                      <div className="text-right">
+                                      {/* <div className="text-right">
                                         <div className="font-bold text-green-400 text-lg">{selectedAsset.apy}</div>
                                         <div className="text-xs text-slate-400">Current APY</div>
-                                      </div>
+                                      </div> */}
                                     </div>
 
                                     <div className="grid grid-cols-3 gap-4">
@@ -254,10 +269,10 @@
                                 className="input-dark text-base py-3 pr-16 rounded-lg placeholder:text-slate-500"
                               />
                               <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 font-semibold text-sm">
-                                {collateralAsset}
+                                {collateralAsset?.symbol}
                               </div>
                             </div>
-                            <div className="text-xs text-slate-400">Balance: 0 {collateralAsset} (~$0.00)</div>
+                            <div className="text-xs text-slate-400">Balance: 0 {collateralAsset?.symbol} (~$0.00)</div>
                           </div>
 
                           {/* LTV Slider */}
@@ -269,10 +284,10 @@
                               </Badge>
                             </div>
                             <div className="bg-slate-800/50 rounded-lg p-3">
-                              <Slider value={ltv} onValueChange={setLtv} max={80} min={10} step={5} className="w-full" />
+                              <Slider value={ltv} onValueChange={setLtv} max={maxLtv} min={10} step={5} className="w-full" />
                               <div className="flex justify-between text-xs text-slate-400 mt-1">
                                 <span>Conservative (10%)</span>
-                                <span>Aggressive (80%)</span>
+                                <span>Aggressive ({maxLtv})</span>
                               </div>
                             </div>
                           </div>
@@ -313,17 +328,17 @@
                                 <div className="text-xs text-slate-400 mt-1">≈ ${borrowAmount} USD</div>
                               </div>
 
-                              <div className="grid grid-cols-2 gap-2">
+                              <div className="grid grid-cols-1 gap-2">
                                 <div className="bg-slate-800/50 rounded-lg p-2">
                                   <div className="text-xs text-slate-400">Interest Rate</div>
                                   <div className="text-base font-bold text-green-400">0%</div>
                                 </div>
-                                <div className="bg-slate-800/50 rounded-lg p-2">
+                                {/* <div className="bg-slate-800/50 rounded-lg p-2">
                                   <div className="text-xs text-slate-400">Collateral APY</div>
                                   <div className="text-base font-bold text-white">
                                     {collateralAssets.find((a) => a.symbol === collateralAsset)?.apy || "0%"}
                                   </div>
-                                </div>
+                                </div> */}
                               </div>
 
                               <div className="bg-slate-800/50 rounded-lg p-3">
@@ -419,7 +434,7 @@
                           <th className="text-right text-xs font-medium text-slate-400 pb-3">Liquidation Threshold</th>
                           {/* <th className="text-right text-xs font-medium text-slate-400 pb-3">Liquidation Penalty</th> */}
                           {/* <th className="text-right text-xs font-medium text-slate-400 pb-3">Borrow Power</th> */}
-                          <th className="text-right text-xs font-medium text-slate-400 pb-3">Current Utilization</th>
+                          {/* <th className="text-right text-xs font-medium text-slate-400 pb-3">Current Utilization</th> */}
                           <th className="text-right text-xs font-medium text-slate-400 pb-3">Actions</th>
                         </tr>
                       </thead>
@@ -463,9 +478,9 @@
                               <div className="font-semibold text-green-400 text-sm">{position.currentRate}%</div>
                               <div className="text-xs text-slate-400">{position.baseRate}% base</div>
                             </td> */}
-                            <td className="text-right py-4">
+                            {/* <td className="text-right py-4">
                               <div className="font-semibold text-cyan-400 text-sm">{position.currentUtilization}%</div>
-                            </td>
+                            </td> */}
                             <td className="text-right py-4">
                               <div className="flex justify-end space-x-2">
                                 <Button size="sm" variant="outline" className="text-xs h-7 px-2">

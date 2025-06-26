@@ -151,6 +151,9 @@ export function SupplyProvider({ children }: { children: React.ReactNode }) {
   const formattedUserDebtPositions = useMemo(() => {
     if (!userData) return []
     
+
+    console.log(userData, "USER DATA")
+
     return userData.userDebtData.map((position) => {
       const assetAddress = position.debtAsset
       const metadata = ASSET_METADATA[assetAddress] || {
