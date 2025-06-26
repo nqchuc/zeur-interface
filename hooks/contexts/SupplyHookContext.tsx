@@ -12,14 +12,22 @@ import {
 import { UI_POOL_DATA_ADDRESS, UIPoolDataABI } from '@/contracts/UIPoolData'
 import { PoolABI, POOL_ADDRESS } from '@/contracts/Pool'
 import { ASSET_METADATA } from '@/lib/constants'
-import { useTransactions } from '@/hooks/useTransactions'
+import { useTransactions, ZeurTransactionType } from '@/hooks/useTransactions'
 
 interface SupplyFunctionParams {
   asset: Address
   amount: string
   decimals: number
   isNativeToken?: boolean
+  symbol: string
 }
+
+interface WithdrawFunctionParams {
+  asset: Address
+  amount: string
+  decimals: number
+}
+
 
 interface SupplyContextValue {
   // Asset data
@@ -37,20 +45,8 @@ interface SupplyContextValue {
   
   // Supply function
   supply: (params: SupplyFunctionParams) => Promise<void>
-  
-  // Transaction state
-  transactionState: {
-    currentStep: string
-    isProcessing: boolean
-    isCompleted: boolean
-    error: string | null
-    currentAllowance?: bigint
-    needsApproval: boolean
-    approvalTxHash?: Address
-    txHash?: Address
-    statusMessage: string
-  }
-  resetTransaction: () => void
+  withdraw: (params: WithdrawFunctionParams) => Promise<void>
+
   
   // Helpers
   formatNumber: (value: string | number) => string
@@ -181,12 +177,13 @@ export function SupplyProvider({ children }: { children: React.ReactNode }) {
         supplyBalance,
         borrowBalance,
         netBorrow,
+        decimals: decimals
       }
     })
   }, [userData, formattedAssets])
   
   // Simple supply function using the universal transactions hook
-  const supply = async ({ asset, amount, decimals, isNativeToken = false }: SupplyFunctionParams) => {
+  const supply = async ({ asset, amount, decimals, isNativeToken = false, symbol }: SupplyFunctionParams) => {
     if (!userAddress) {
       throw new Error('User not connected')
     }
@@ -196,6 +193,7 @@ export function SupplyProvider({ children }: { children: React.ReactNode }) {
     
     // Create transaction request
     const transactionRequest = {
+      type: 'supply' as ZeurTransactionType,
       writeContract: {
         address: POOL_ADDRESS,
         abi: PoolABI,
@@ -209,6 +207,12 @@ export function SupplyProvider({ children }: { children: React.ReactNode }) {
         tokenAmount: amountInWei,
         spenderAddress: POOL_ADDRESS,
       },
+      metadata: {
+        asset: symbol,
+        amount: amount,
+        decimals: decimals,
+        isNativeToken,
+      }
     }
     
     // Execute transaction (handles approval + execution automatically)
@@ -217,7 +221,7 @@ export function SupplyProvider({ children }: { children: React.ReactNode }) {
   
   // Auto-refetch data when transaction is completed
   useEffect(() => {
-    if (transactions.isCompleted) {
+    if (transactions.transactionState.isCompleted) {
       console.log('🔄 Refreshing data after successful supply')
       refetchData()
       refetchUser()
@@ -227,7 +231,40 @@ export function SupplyProvider({ children }: { children: React.ReactNode }) {
         transactions.reset()
       }, 3000)
     }
-  }, [transactions.isCompleted, refetchData, refetchUser, transactions.reset])
+  }, [transactions.transactionState.isCompleted, refetchData, refetchUser, transactions.reset])
+
+
+  const withdraw = async ({ asset, amount, decimals }: WithdrawFunctionParams) => {
+    if (!userAddress) {
+      throw new Error('User not connected')
+    }
+    
+    console.log('🚀 Starting withdraw transaction', { asset, amount, decimals })
+    const amountInWei = parseUnits(amount, decimals)
+    
+    // Get asset metadata for better logging
+    const assetMetadata = formattedAssets.find(a => a.asset === asset)
+    
+    // Create transaction request with type
+    const transactionRequest = {
+      type: 'withdraw' as ZeurTransactionType,
+      writeContract: {
+        address: POOL_ADDRESS,
+        abi: PoolABI,
+        functionName: 'withdraw',
+        args: [asset, amountInWei, userAddress],
+      },
+      // Withdraw doesn't need approval since we're withdrawing our own funds
+      metadata: {
+        asset: assetMetadata?.symbol || 'Unknown',
+        amount: amount,
+        decimals: decimals,
+      }
+    }
+    
+    // Execute transaction
+    await transactions.execute(transactionRequest)
+  }
   
   // Helper functions
   const formatNumber = (value: string | number) => {
@@ -262,22 +299,9 @@ export function SupplyProvider({ children }: { children: React.ReactNode }) {
     errorUserData: errorUser || null,
     refetchUserData: refetchUser,
     
-    // Supply function
+    /// write function
     supply,
-    
-    // Transaction state (from useTransactions)
-    transactionState: {
-      currentStep: transactions.currentStep,
-      isProcessing: transactions.isProcessing,
-      isCompleted: transactions.isCompleted,
-      error: transactions.error,
-      currentAllowance: transactions.currentAllowance,
-      needsApproval: transactions.needsApproval,
-      approvalTxHash: transactions.approvalTxHash,
-      txHash: transactions.txHash,
-      statusMessage: transactions.statusMessage,
-    },
-    resetTransaction: transactions.reset,
+    withdraw,
     
     formatNumber,
     formatPercentage,

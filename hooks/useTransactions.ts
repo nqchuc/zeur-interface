@@ -3,6 +3,9 @@ import { useAccount, useReadContract, useWriteContract, useWaitForTransactionRec
 import { Address, maxUint256 } from 'viem'
 import { erc20Abi } from 'viem'
 
+// Transaction type enum
+export type ZeurTransactionType = 'supply' | 'withdraw' | 'borrow' | 'repay' | 'liquidate' | 'other'
+
 interface WriteContractParams {
   address: Address
   abi: any
@@ -18,8 +21,14 @@ interface ApprovalParams {
 }
 
 interface TransactionRequest {
+  type: ZeurTransactionType // Add transaction type
   writeContract: WriteContractParams
   approval?: ApprovalParams // Optional - if provided, will handle approval first
+  metadata?: { // Optional metadata for additional context
+    asset?: string
+    amount?: string
+    [key: string]: any
+  }
 }
 
 type TransactionStep = 'idle' | 'checking-approval' | 'approving' | 'executing' | 'confirming' | 'completed' | 'error'
@@ -29,6 +38,10 @@ interface TransactionState {
   isProcessing: boolean
   isCompleted: boolean
   error: string | null
+  
+  // Transaction type and metadata
+  transactionType: ZeurTransactionType | null
+  metadata?: { [key: string]: any }
   
   // Approval state
   currentAllowance?: bigint
@@ -106,6 +119,8 @@ export function useTransactions() {
   // Handle approval checking step
   useEffect(() => {
     if (currentStep === 'checking-approval' && transactionRequest) {
+      console.log(`⏳ Checking approval for ${transactionRequest.type} transaction`)
+      
       // No approval needed
       if (!transactionRequest.approval) {
         console.log('⏭️ No approval needed, executing transaction')
@@ -151,7 +166,7 @@ export function useTransactions() {
   // Handle transaction execution
   useEffect(() => {
     if (currentStep === 'executing' && transactionRequest) {
-      console.log('🚀 Executing main transaction')
+      console.log(`🚀 Executing ${transactionRequest.type} transaction`)
       
       // Ensure args is always an array (wagmi requirement)
       const contractParams = {
@@ -167,10 +182,10 @@ export function useTransactions() {
   // Handle transaction completion
   useEffect(() => {
     if (currentStep === 'confirming' && isTransactionConfirmed) {
-      console.log('🎉 Transaction completed successfully!')
+      console.log(`🎉 ${transactionRequest?.type} transaction completed successfully!`)
       setCurrentStep('completed')
     }
-  }, [currentStep, isTransactionConfirmed])
+  }, [currentStep, isTransactionConfirmed, transactionRequest?.type])
   
   // Handle errors
   useEffect(() => {
@@ -190,10 +205,12 @@ export function useTransactions() {
       throw new Error('User not connected')
     }
     
-    console.log('🚀 Starting transaction execution', {
+    console.log(`🚀 Starting ${request.type} transaction execution`, {
+      type: request.type,
       contract: request.writeContract.address,
       function: request.writeContract.functionName,
       needsApproval: !!request.approval,
+      metadata: request.metadata,
     })
     
     setTransactionRequest(request)
@@ -210,27 +227,31 @@ export function useTransactions() {
     resetTransaction()
   }, [resetApproval, resetTransaction])
   
-  // Get status message
+  // Get status message based on transaction type
   const getStatusMessage = () => {
+    const txType = transactionRequest?.type || 'transaction'
+    const asset = transactionRequest?.metadata?.asset || ''
+    const amount = transactionRequest?.metadata?.amount || ''
+    
     switch (currentStep) {
       case 'idle':
         return 'Ready to execute transaction'
       case 'checking-approval':
-        return 'Checking token approval...'
+        return `Checking token approval for ${txType}...`
       case 'approving':
-        return isApprovingPending ? 'Confirming approval...' : 
-               isApprovalConfirming ? 'Waiting for approval confirmation...' : 
-               'Requesting token approval...'
+        return isApprovingPending ? `Confirming ${asset} approval...` : 
+               isApprovalConfirming ? `Waiting for ${asset} approval confirmation...` : 
+               `Requesting ${asset} token approval...`
       case 'executing':
-        return 'Preparing transaction...'
+        return `Preparing ${txType} transaction...`
       case 'confirming':
-        return isTransactionPending ? 'Confirming transaction...' :
-               isTransactionConfirming ? 'Waiting for confirmation...' :
-               'Processing transaction...'
+        return isTransactionPending ? `Confirming ${txType} transaction...` :
+               isTransactionConfirming ? `Waiting for ${txType} confirmation...` :
+               `Processing ${txType} of ${amount} ${asset}...`
       case 'completed':
-        return 'Transaction completed successfully!'
+        return `${txType.charAt(0).toUpperCase() + txType.slice(1)} completed successfully!`
       case 'error':
-        return 'Transaction failed'
+        return `${txType.charAt(0).toUpperCase() + txType.slice(1)} failed`
       default:
         return 'Unknown status'
     }
@@ -242,6 +263,10 @@ export function useTransactions() {
     isProcessing: currentStep !== 'idle' && currentStep !== 'completed' && currentStep !== 'error',
     isCompleted: currentStep === 'completed',
     error,
+    
+    // Transaction type and metadata
+    transactionType: transactionRequest?.type || null,
+    metadata: transactionRequest?.metadata,
     
     // Approval state
     currentAllowance,
@@ -261,6 +286,12 @@ export function useTransactions() {
     reset,
     
     // State
-    ...state,
+    transactionState: state,
+    
+    // Helper functions for checking transaction type
+    isSupplyTransaction: () => state.transactionType === 'supply',
+    isWithdrawTransaction: () => state.transactionType === 'withdraw',
+    isBorrowTransaction: () => state.transactionType === 'borrow',
+    isRepayTransaction: () => state.transactionType === 'repay',
   }
 }

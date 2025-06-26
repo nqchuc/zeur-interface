@@ -88,4 +88,5 @@ export interface FormattedUserDebtData {
   netBorrow: string
   utilizationRate: string
   supplyRate: string
+  decimals: number
 }

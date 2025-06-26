@@ -17,6 +17,8 @@ import { formatNumber, formatPercentage, formatUtilization } from "@/lib/helper"
 import { useSupply } from "@/hooks/contexts/SupplyHookContext"
 import { FormattedAssetData } from "@/types/contracts"
 import { useToast } from "@/hooks/useToast"
+import WithdrawModal from "@/components/modal/WithdrawModal"
+import { useTransactions } from "@/hooks/useTransactions"
 
 export default function SupplyPage() {
     const [paymentMethod, setPaymentMethod] = useState("crypto")
@@ -24,13 +26,16 @@ export default function SupplyPage() {
     const [selectedLendAsset, setSelectedLendAsset] = useState<FormattedAssetData|null>(null)
     const { toast } = useToast()
 
+    const [isWithdrawDialogOpen, setIsWithdrawDialogOpen] = useState(false)
+    const [selectedWithdrawPosition, setSelectedWithdrawPosition] = useState<any>(null)
+
     const {
       supply,
-      transactionState,
-      resetTransaction,
       debtAssets,
       userDebtPositions
     } = useSupply()
+
+    const { transactionState} = useTransactions();
   
   
     // Handle supply submission 
@@ -73,6 +78,7 @@ export default function SupplyPage() {
       await supply({
         asset: selectedLendAsset!.asset,
         amount,
+        symbol: selectedLendAsset!.symbol,
         decimals: selectedLendAsset!.decimals,
         isNativeToken: false
       })
@@ -82,17 +88,22 @@ export default function SupplyPage() {
     }
   }
 
+  const handleWithdraw = () => {
+    // resetTransaction()
+  }
+
   // Enhanced success handling
   useEffect(() => {
     if (transactionState.isCompleted) {
       setAmount('')
       
       // Show additional success information
-      toast({
-        title: "✅ Supply Complete!",
-        variant: "success", 
-        description: `Successfully supplied ${amount} ${selectedLendAsset?.symbol}. Your balance has been updated.`,
-      })
+       if (transactionState.transactionType === 'supply'){
+        toast({
+          title: "🎉 Supply Successful",
+          description: `Successfully supplied ${transactionState.metadata?.amount} ${transactionState.metadata?.symbol}to the pool`,
+        })
+      }
     }
   }, [transactionState.isCompleted, amount, selectedLendAsset])
 
@@ -108,9 +119,11 @@ export default function SupplyPage() {
       setSelectedLendAsset(debtAssets[0])
     }
   }, [debtAssets])
-  
 
-
+  const handleWithdrawClick = (position: any) => {
+    setSelectedWithdrawPosition(position)
+    setIsWithdrawDialogOpen(true)
+  } 
 
   return (
     <div className="space-y-4">
@@ -492,6 +505,14 @@ export default function SupplyPage() {
               </div>
             </div>
 
+            <WithdrawModal
+              isOpen={isWithdrawDialogOpen}
+              onClose={() => {
+                setIsWithdrawDialogOpen(false)
+                setSelectedWithdrawPosition(null)
+              }}
+              selectedPosition={selectedWithdrawPosition}
+            />
             
 
 
@@ -548,7 +569,7 @@ export default function SupplyPage() {
 
                           <td className="text-right py-4">
                             <div className="flex justify-end space-x-2">
-                              <Button size="sm" variant="outline" className="text-xs h-7 px-2">
+                              <Button onClick={() => handleWithdrawClick(position)} size="sm" variant="outline" className="text-xs h-7 px-2">
                                 Withdraw
                               </Button>
                               <Button size="sm" variant="outline" className="text-xs h-7 px-2">
@@ -563,6 +584,8 @@ export default function SupplyPage() {
                 </div>
               </CardContent>
             </Card>
+
+           
           </div>
   )
 }
