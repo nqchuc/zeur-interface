@@ -15,7 +15,7 @@
   import { Switch } from "@/components/ui/switch"
   import { Slider } from "@/components/ui/slider"
   import { Progress } from "@/components/ui/progress"
-  import {  collateralAssets, userCollateralPositions,  } from "@/lib/constants"
+  import {  collateralAssets, userCollateralPositions, userDebtPositions,  } from "@/lib/constants"
   import { formatNumber, formatPercentage } from "@/lib/helper"
   import { useSupply } from "@/hooks/contexts/SupplyHookContext"
   import { FormattedCollateralData, useBorrow } from "@/hooks/contexts/BorrowHookContext"
@@ -118,11 +118,7 @@ import { FormattedAssetData } from "@/types/contracts"
                             <div className="flex items-center justify-between mb-2">
                               <div className="flex items-center space-x-3">
                                 <img
-                                  className={`w-8 h-8 rounded-full flex items-center justify-center text-lg ${
-                                    collateralAsset?.symbol === asset.symbol
-                                      ? ""
-                                      : `bg-[${asset.color}20]`
-                                  }`}
+                                  className={`w-8 h-8 rounded-full flex items-center justify-center text-lg `}
                                   src={asset.icon}
                                 >
                                   {/* {asset.icon} */}
@@ -428,9 +424,9 @@ import { FormattedAssetData } from "@/types/contracts"
                       <thead>
                         <tr className="border-b border-slate-700">
                           <th className="text-left text-xs font-medium text-slate-400 pb-3">Asset</th>
-                          <th className="text-right text-xs font-medium text-slate-400 pb-3">Supply Balance</th>
-                          <th className="text-right text-xs font-medium text-slate-400 pb-3">Balance USD</th>
-                          <th className="text-right text-xs font-medium text-slate-400 pb-3">LTV</th>
+                          <th className="text-right text-xs font-medium text-slate-400 pb-3">Collateral Balance</th>
+                          <th className="text-right text-xs font-medium text-slate-400 pb-3">Collateral Balance USD</th>
+                          <th className="text-right text-xs font-medium text-slate-400 pb-3">Max LTV</th>
                           <th className="text-right text-xs font-medium text-slate-400 pb-3">Liquidation Threshold</th>
                           {/* <th className="text-right text-xs font-medium text-slate-400 pb-3">Liquidation Penalty</th> */}
                           {/* <th className="text-right text-xs font-medium text-slate-400 pb-3">Borrow Power</th> */}
@@ -496,6 +492,74 @@ import { FormattedAssetData } from "@/types/contracts"
                       </tbody>
                     </table>
                   </div>
+
+                  
+                </CardContent>
+              </Card>
+
+              <Card className="card-dark rounded-xl">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg font-bold text-white">Your Debt Positions</CardTitle>
+                    <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs">
+                      {userCollateralPositions.length} Active
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-slate-700">
+                          <th className="text-left text-xs font-medium text-slate-400 pb-3">Asset</th>
+                          <th className="text-right text-xs font-medium text-slate-400 pb-3">Borrow Balance</th>
+                          <th className="text-right text-xs font-medium text-slate-400 pb-3">Borrow Balance USD</th>
+                          <th className="text-right text-xs font-medium text-slate-400 pb-3">Borrow Rate</th>
+                          <th className="text-right text-xs font-medium text-slate-400 pb-3">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {userDebtPositions.map((position, index) => (
+                          <tr key={index} className="border-b border-slate-800/50">
+                            <td className="py-4">
+                              <div className="flex items-center space-x-3">
+                                <img src={position.icon} className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-lg">
+                                  {/* {position.icon} */}
+                                </img>
+                                <div>
+                                  <div className="font-semibold text-white text-sm">{position.symbol}</div>
+                                  <div className="text-xs text-slate-400">{position.name}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="text-right py-4">
+                              <div className="font-semibold text-white text-sm">{position.borrowBalance}</div>
+                              <div className="text-xs text-slate-400">{position.symbol}</div>
+                            </td>
+                            <td className="text-right py-4">
+                              <div className="font-semibold text-white text-sm">${position.borrowBalanceUSD}</div>
+                            </td>
+                            <td className="text-right py-4">
+                              <div className="font-semibold text-cyan-400 text-sm">{position.borrowRate}%</div>
+                            </td>
+
+                            <td className="text-right py-4">
+                              <div className="flex justify-end space-x-2">
+                                <Button size="sm" variant="outline" className="text-xs h-7 px-2">
+                                  Repay
+                                </Button>
+                                <Button size="sm" variant="outline" className="text-xs h-7 px-2">
+                                  <ExternalLink className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  
                 </CardContent>
               </Card>
             </div>

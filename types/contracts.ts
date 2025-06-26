@@ -76,7 +76,6 @@ export interface FormattedAssetData {
   isFrozen: boolean
   isPaused: boolean
   protocols: string[]
-  color: string
 }
 
 export interface FormattedUserDebtData {

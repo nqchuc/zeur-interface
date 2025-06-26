@@ -139,7 +139,6 @@ export function SupplyProvider({ children }: { children: React.ReactNode }) {
           isFrozen: assetData.isFrozen,
           isPaused: assetData.isPaused,
           protocols: metadata.protocols,
-          color: metadata.color,
         }
         
         return formatted

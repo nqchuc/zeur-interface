@@ -24,6 +24,20 @@ export const userSupplyPositions = [
   // },
 ]
 
+
+export const userDebtPositions = [
+  {
+    debtAsset: "0x1234...EURC",
+    symbol: "EURC",
+    name: "Euro Coin",
+    icon: "https://s2.coinmarketcap.com/static/img/coins/64x64/20641.png",
+    borrowBalance: "2500.00",
+    borrowBalanceUSD: "2500.00",
+    borrowRate: "0", 
+  },
+
+]
+
 // User Collateral Positions (for Borrow Page) - Users deposit these as collateral
 export const userCollateralPositions = [
   {
@@ -199,28 +213,30 @@ export const collateralAssets = [
   },
 ]
 
-export const ASSET_METADATA: Record<string, { symbol: string; name: string; icon: string; color: string; protocols: string[] }> = {
+export const ASSET_METADATA: Record<string, { symbol: string; name: string; icon: string; protocols: string[]; yield: string; }> = {
   // Debt Assets (Stablecoins)
   "0xf170643aD2209E4cD9b17ddF8417D537E894d3e9": { 
     symbol: 'EURC', 
     name: 'Euro Coin', 
     icon: 'https://s2.coinmarketcap.com/static/img/coins/64x64/20641.png', 
-    color: '#8b5cf6', 
-    protocols: ['Morpho', 'Aave'] 
+    protocols: ['Morpho', 'Aave'] ,
+    yield: "0"
   },
   '0x5678...EURI': { 
     symbol: 'EURI', 
     name: 'Euro Stablecoin', 
     icon: '💶', 
-    color: '#06b6d4', 
-    protocols: ['Compound', 'Morpho'] 
+
+    protocols: ['Compound', 'Morpho'],
+    yield: "0" 
   },
   '0x9abc...USDC': { 
     symbol: 'USDC', 
     name: 'USD Coin', 
     icon: '💵', 
-    color: '#2775CA', 
-    protocols: ['Aave', 'Compound'] 
+
+    protocols: ['Aave', 'Compound'] ,
+    yield: "0"
   },
   
   // Collateral Assets
@@ -228,42 +244,55 @@ export const ASSET_METADATA: Record<string, { symbol: string; name: string; icon
     symbol: 'ETH', 
     name: 'Ethereum', 
     icon: 'https://s2.coinmarketcap.com/static/img/coins/64x64/1027.png', 
-    color: '#627EEA', 
-    protocols: ['Lido', 'RocketPool'] 
+
+    protocols: ['Lido', 'RocketPool'] ,
+    yield: "0"
   },
   '0x1111...stETH': { 
     symbol: 'stETH', 
     name: 'Staked Ethereum', 
     icon: '🟣', 
-    color: '#00A3FF', 
-    protocols: ['Lido'] 
+ 
+    protocols: ['Lido'] ,
+    yield: "0"
   },
   '0x2222...WBTC': { 
     symbol: 'WBTC', 
     name: 'Wrapped Bitcoin', 
     icon: '🟠', 
-    color: '#F7931A', 
-    protocols: [] 
+    protocols: [] ,
+    yield: "0"
   },
   "0x779877A7B0D9E8603169DdbD7836e478b4624789": { 
     symbol: 'LINK', 
     name: 'Chainlink', 
     icon: 'https://s2.coinmarketcap.com/static/img/coins/64x64/1975.png', 
-    color: '#375BD2', 
-    protocols: [] 
+    protocols: [] ,
+    yield: "0"
+  },
+
+  // LST ASSETS
+  "0x66642E3344Ec349cb7DB250B2C667680a36AB399": {
+
+    name: "Lido stETH",
+    icon: '🟠', 
+    symbol: "stETH",
+    protocols: [] ,
+    yield: "2.8%"
+
   },
 }
 
 
 export const vaultStrategies = [
   {
-    name: "ETH Liquid Staking",
+    name: "Lido stETH",
     risk: "Low",
-    apy: "6.2%",
+    apy: "2.8%",
     color: "from-green-500 to-green-400",
     recommended: true,
     description: "Stake your ETH and earn yield through liquid staking protocols.",
-    protocols: ["Lido", "RocketPool"],
+    protocols: ["Lido"],
   },
   {
     name: "Stablecoin Lending",
@@ -284,3 +313,59 @@ export const vaultStrategies = [
     protocols: ["Aave", "Yearn", "Curve"],
   },
 ]
+
+
+const LstList = {
+
+ 
+
+  "0x38DbC0a33269d22D593f94aD9C4AC709DC31a119": {
+
+    "name": "Etherfi eETH",
+
+    "symbol": "eETH",
+
+    "decimals": 18,
+
+    "yield": "2.9%"
+
+  },
+
+  "0x5554612481Eb85288EF72258762bF84898604696": {
+
+    "name": "Rocket Pool rETH",
+
+    "symbol": "rETH",
+
+    "decimals": 18,
+
+    "yield": "2.6%"
+
+  },
+
+  "0x8d9FEF6239024cC359eDd8D0B2EE9E801AaE6E78": {
+
+    "name": "Morpho WETH",
+
+    "symbol": "mWETH",
+
+    "decimals": 18,
+
+    "yield": "2.5%"
+
+  },
+
+  "0xAA15d08954Cf6B22c8FC736D8C04cc402d107a90": {
+
+    "name": "StakeLink stLINK",
+
+    "symbol": "stLINK",
+
+    "decimals": 18,
+
+    "yield": "5.2%"
+
+  }
+
+}
+

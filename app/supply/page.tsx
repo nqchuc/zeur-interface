@@ -145,7 +145,7 @@ export default function SupplyPage() {
                                 className={`w-8 h-8 rounded-full flex items-center justify-center text-lg ${
                                   selectedLendAsset?.symbol === asset.symbol
                                     ? "bg-blue-500/20 border-2 border-blue-500/50"
-                                    : `bg-[${asset.color}20]`
+                                    : ``
                                 }`}
                               >
                               </img>
@@ -541,7 +541,7 @@ export default function SupplyPage() {
                           <td className="text-right py-4">
                             <div className="flex justify-end space-x-2">
                               <Button size="sm" variant="outline" className="text-xs h-7 px-2">
-                                Repay
+                                Withdraw
                               </Button>
                               <Button size="sm" variant="outline" className="text-xs h-7 px-2">
                                 <ExternalLink className="h-3 w-3" />

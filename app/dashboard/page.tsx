@@ -218,7 +218,7 @@ export default function DashboardPage() {
                 <div
                   key={index}
                   className={`p-2 rounded-lg flex items-center justify-between ${
-                    strategy.recommended ? "bg-purple-500/10 border border-purple-500/20" : "bg-slate-800/30"
+                    strategy.recommended ? "bg-purple-500/10 border border-purple-500/20" : ""
                   }`}
                 >
                   <div className="flex items-center space-x-2">
