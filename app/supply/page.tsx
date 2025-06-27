@@ -157,7 +157,7 @@ export default function SupplyPage() {
                       <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">Earn Yield</Badge>
                     </div>
                   </CardHeader>
-                  <CardContent className="p-4 h-[450px] overflow-y-auto scrollbar-hide">
+                  <CardContent className="p-4 h-fit md:h-[450px] overflow-y-auto scrollbar-hide">
                     <div className="space-y-2">
                       {debtAssets.map((asset, index) => (
                         <div

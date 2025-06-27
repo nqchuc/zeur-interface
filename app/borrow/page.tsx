@@ -15,11 +15,10 @@
   import { Switch } from "@/components/ui/switch"
   import { Slider } from "@/components/ui/slider"
   import { Progress } from "@/components/ui/progress"
-  import {  collateralAssets, userCollateralPositions, userDebtPositions,  } from "@/lib/constants"
+  import { userCollateralPositions, userDebtPositions,  } from "@/lib/constants"
   import { formatNumber, formatPercentage } from "@/lib/helper"
   import { useSupply } from "@/hooks/contexts/SupplyHookContext"
   import { FormattedCollateralData, useBorrow } from "@/hooks/contexts/BorrowHookContext"
-import { FormattedAssetData } from "@/types/contracts"
 
   export default function BorrowPage() {
     const [collateralAsset, setCollateralAsset] = useState<FormattedCollateralData|null>(null)
@@ -36,14 +35,9 @@ import { FormattedAssetData } from "@/types/contracts"
     const {debtAssets,} = useSupply();
     const {collateralAssets} = useBorrow();
 
-
-
     const calculateBorrowAmount = () => {
       if (!collateralAmount) return "0"
       if (!collateralAsset) return "0"
-
-      console.log(collateralAsset.ltv , "LTV")
-
       const collateralValue =
         Number.parseFloat(collateralAmount) *
         (collateralAssets.find((a) => a.symbol === collateralAsset?.symbol)?.currentPrice  || 0) 
@@ -67,18 +61,15 @@ import { FormattedAssetData } from "@/types/contracts"
     const healthFactor = calculateHealthFactor()
 
     useEffect(() => {
-      console.log("colatteralAssets", collateralAssets)
-    }, [collateralAssets])
-
-    useEffect(() => {
       setMaxLtv(Number(collateralAsset?.ltv))
     }, [collateralAsset])
-
+    
     useEffect(() => {
-      console.log(ltv, "LTV")
-    }, [ltv])
-    
-    
+      if(collateralAssets[0]){
+        setCollateralAsset(collateralAssets[0])
+      }
+    }, [collateralAssets])
+  
     
 
     return (
@@ -350,7 +341,7 @@ import { FormattedAssetData } from "@/types/contracts"
                               </div>
 
                               {/* Auto Repay Settings */}
-                              <div className="bg-yellow-500/10 rounded-lg p-3 border border-yellow-500/20">
+                              {/* <div className="bg-yellow-500/10 rounded-lg p-3 border border-yellow-500/20">
                                 <div className="flex items-center justify-between">
                                   <div>
                                     <Label className="text-xs font-semibold text-white">Auto Swap-Repay</Label>
@@ -389,7 +380,9 @@ import { FormattedAssetData } from "@/types/contracts"
                                     </div>
                                   </div>
                                 )}
-                              </div>
+                              </div> */}
+
+                              
                             </div>
 
                             {/* Action Button */}
