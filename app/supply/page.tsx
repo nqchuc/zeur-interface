@@ -89,7 +89,6 @@ export default function SupplyPage() {
 
   // Enhanced success handling
   useEffect(() => {
-    console.log(transactionState, "STATE PAGE SUPPLY")
     if (transactionState.isCompleted) {
         setAmount('')
       
@@ -98,6 +97,7 @@ export default function SupplyPage() {
         resetTransaction()
         toast({
           title: "🎉 Supply Successful",
+          variant: "success",
           description: `Successfully supplied ${transactionState.metadata?.amount} ${transactionState.metadata?.asset}to the pool`,
         })
       }

@@ -62,6 +62,7 @@ export interface UserData {
 export interface FormattedAssetData {
   assetType: AssetType
   asset: Address
+  assetColAddress?: Address
   symbol: string
   name: string
   icon: string

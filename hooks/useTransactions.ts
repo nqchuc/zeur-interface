@@ -117,7 +117,7 @@ export function useTransactions() {
   
   // Check if approval is needed
   const needsApproval = useCallback((): boolean => {
-    if (!transactionRequest?.approval || !currentAllowance) return false
+    if (!transactionRequest?.approval || currentAllowance == undefined) return false
     return currentAllowance < transactionRequest.approval.tokenAmount
   }, [transactionRequest, currentAllowance])
   
@@ -243,23 +243,22 @@ export function useTransactions() {
   const getStatusMessage = () => {
     const txType = transactionRequest?.type || 'transaction'
     const asset = transactionRequest?.metadata?.asset || ''
-    const amount = transactionRequest?.metadata?.amount || ''
     
     switch (currentStep) {
       case 'idle':
         return 'Ready to execute transaction'
       case 'checking-approval':
-        return `Checking token approval for ${txType}...`
+        return `Checking approval...`
       case 'approving':
-        return isApprovingPending ? `Confirming ${asset} approval...` : 
-               isApprovalConfirming ? `Waiting for ${asset} approval confirmation...` : 
-               `Requesting ${asset} token approval...`
+        return isApprovingPending ? `${asset} approving...` : 
+               isApprovalConfirming ? `approval confirmation...` : 
+               `Requesting ${asset} approval...`
       case 'executing':
         return `Preparing ${txType} transaction...`
       case 'confirming':
-        return isTransactionPending ? `Confirming ${txType} transaction...` :
-               isTransactionConfirming ? `Waiting for ${txType} confirmation...` :
-               `Processing ${txType} of ${amount} ${asset}...`
+        return isTransactionPending ? `Confirming transaction...` :
+               isTransactionConfirming ? `${txType} confirmation...` :
+               `Processing}...`
       case 'completed':
         return `${txType.charAt(0).toUpperCase() + txType.slice(1)} completed successfully!`
       case 'error':

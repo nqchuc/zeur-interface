@@ -92,6 +92,7 @@ export default function WithdrawModal({
     if (transactionState.isCompleted && transactionState.transactionType === "withdraw") {
       toast({
         title: "🎉 Withdrawal Successful",
+        variant: "success",
         description: `Successfully withdraw ${transactionState.metadata?.amount} ${transactionState.metadata?.asset} from the pool`,
       })
       refetchAssets()

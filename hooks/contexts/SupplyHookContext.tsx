@@ -105,7 +105,7 @@ export function SupplyProvider({ children }: { children: React.ReactNode }) {
   
   // Format asset data
   const formattedAssets = useMemo(() => {
-    console.log(assetsData, "ASSET DATA")
+    console.log(assetsData, "ASSET DATA Debt Token")
     if (!assetsData || !debtAssetList) return []
     
     return assetsData
@@ -125,6 +125,7 @@ export function SupplyProvider({ children }: { children: React.ReactNode }) {
         const formatted: FormattedAssetData = {
           assetType: assetData.assetType,
           asset: assetData.asset,
+          assetColAddress: assetData.colToken,
           symbol: metadata.symbol,
           name: metadata.name,
           icon: metadata.icon,
@@ -150,9 +151,6 @@ export function SupplyProvider({ children }: { children: React.ReactNode }) {
   const formattedUserDebtPositions = useMemo(() => {
     if (!userData) return []
     
-
-    console.log(userData, "USER DATA")
-
     return userData.userDebtData.map((position) => {
       const assetAddress = position.debtAsset
       const metadata = ASSET_METADATA[assetAddress] || {
@@ -222,20 +220,6 @@ export function SupplyProvider({ children }: { children: React.ReactNode }) {
     // Execute transaction (handles approval + execution automatically)
     await execute(transactionRequest)
   }
-  
-  // Auto-refetch data when transaction is completed
-  // useEffect(() => {
-  //   if (transactions.transactionState.isCompleted) {
-  //     console.log('🔄 Refreshing data after successful supply')
-  //     refetchData()
-  //     refetchUser()
-      
-  //     // Reset transaction after 3 seconds for better UX
-  //     setTimeout(() => {
-  //       transactions.reset()
-  //     }, 3000)
-  //   }
-  // }, [transactions.transactionState.isCompleted, refetchData, refetchUser, transactions.reset])
 
 
   const withdraw = async ({ asset, amount, decimals }: WithdrawFunctionParams) => {
@@ -248,6 +232,8 @@ export function SupplyProvider({ children }: { children: React.ReactNode }) {
     
     // Get asset metadata for better logging
     const assetMetadata = formattedAssets.find(a => a.asset === asset)
+
+    console.log('🚀 Asset COL metadata', assetMetadata?.assetColAddress)
     
     // Create transaction request with type
     const transactionRequest = {
@@ -258,7 +244,11 @@ export function SupplyProvider({ children }: { children: React.ReactNode }) {
         functionName: 'withdraw',
         args: [asset, amountInWei, userAddress],
       },
-      // Withdraw doesn't need approval since we're withdrawing our own funds
+      approval: assetMetadata?.assetColAddress ? {
+        tokenAddress: assetMetadata?.assetColAddress,
+        tokenAmount: amountInWei,
+        spenderAddress: POOL_ADDRESS,
+      } : undefined,
       metadata: {
         asset: assetMetadata?.symbol || 'Unknown',
         amount: amount,
