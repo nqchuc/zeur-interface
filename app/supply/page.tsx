@@ -16,6 +16,7 @@ import { useSupply } from "@/hooks/contexts/SupplyHookContext"
 import { FormattedAssetData } from "@/types/contracts"
 import { useToast } from "@/hooks/useToast"
 import WithdrawModal from "@/components/modal/WithdrawModal"
+import { useTokenBalance, getMaxSupplyAmount } from "@/hooks/useTokenBalance"
 
 export default function SupplyPage() {
     const [paymentMethod, setPaymentMethod] = useState("crypto")
@@ -26,6 +27,17 @@ export default function SupplyPage() {
     const [isWithdrawDialogOpen, setIsWithdrawDialogOpen] = useState(false)
     const [selectedWithdrawPosition, setSelectedWithdrawPosition] = useState<any>(null)
 
+    // Get user's token balance for the selected asset
+    const {
+      balanceFormatted,
+      balanceNumber,
+      isLoading: isBalanceLoading,
+      refetch: refetchBalance
+    } = useTokenBalance(
+      selectedLendAsset?.asset,
+      selectedLendAsset?.decimals || 18
+    )
+
     const {
       supply,
       debtAssets,
@@ -35,7 +47,13 @@ export default function SupplyPage() {
       resetTransaction
     } = useSupply()
 
-  
+    // Handle max button click
+    const handleMaxClick = () => {
+      if (selectedLendAsset && balanceNumber > 0) {
+        const maxAmount = getMaxSupplyAmount(balanceNumber, false) // Assuming ERC20 tokens
+        setAmount(maxAmount)
+      }
+    }
   
     // Handle supply submission 
   const handleSupply = async () => {
@@ -58,11 +76,11 @@ export default function SupplyPage() {
       return
     }
 
-    if (numericAmount > 1000000) {
+    if (numericAmount > balanceNumber) {
       toast({
         variant: "destructive",
-        title: "⚠️ Amount Too Large",
-        description: "Please enter a reasonable amount",
+        title: "⚠️ Insufficient Balance",
+        description: `You only have ${balanceFormatted} ${selectedLendAsset?.symbol} available`,
       })
       return
     }
@@ -94,15 +112,16 @@ export default function SupplyPage() {
       
        if (transactionState.transactionType === 'supply'){
         refetchAssets()
+        refetchBalance() // Refresh balance after successful supply
         resetTransaction()
         toast({
           title: "🎉 Supply Successful",
           variant: "success",
-          description: `Successfully supplied ${transactionState.metadata?.amount} ${transactionState.metadata?.asset}to the pool`,
+          description: `Successfully supplied ${transactionState.metadata?.amount} ${transactionState.metadata?.asset} to the pool`,
         })
       }
     }
-  }, [transactionState.isCompleted, transactionState, selectedLendAsset])
+  }, [transactionState.isCompleted, transactionState, selectedLendAsset, refetchBalance])
 
   useEffect(() => {
     if(debtAssets[0]){
@@ -127,9 +146,9 @@ export default function SupplyPage() {
               </p>
             </div>
             {/* Yield Optimization Platform */}
-            <div className="flex flex-col lg:flex-row gap-6">
+            <div className="flex flex-col lg:flex-row gap-6 h-fit">
               {/* Left Column - Available Debt Assets (30%) */}
-              <div className="lg:w-[30%] order-1 lg:order-1">
+              <div className="lg:w-[30%] order-1 lg:order-1 h-it">
                 <Card className="card-dark rounded-xl overflow-hidden h-fit">
                   <div className="h-1 bg-gradient-to-r from-green-500 to-blue-500"></div>
                   <CardHeader className="pb-2">
@@ -138,7 +157,7 @@ export default function SupplyPage() {
                       <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">Earn Yield</Badge>
                     </div>
                   </CardHeader>
-                  <CardContent className="p-4 h-[500px] overflow-y-auto scrollbar-hide">
+                  <CardContent className="p-4 h-[450px] overflow-y-auto scrollbar-hide">
                     <div className="space-y-2">
                       {debtAssets.map((asset, index) => (
                         <div
@@ -207,7 +226,7 @@ export default function SupplyPage() {
               </div>
 
               {/* Right Column - Lend Form (70%) */}
-              <div className="lg:w-[70%] order-2 lg:order-2">
+              <div className="lg:w-[70%] order-2 lg:order-2 h-it">
                 <Card className="card-dark rounded-xl overflow-hidden">
                   <div className="h-1 bg-gradient-to-r from-blue-500 to-cyan-500"></div>
                   <CardHeader className="pb-2">
@@ -302,18 +321,52 @@ export default function SupplyPage() {
                                     </div>
                                   </div>
 
-                                  <div className="space-y-2">
-                                    <Label htmlFor="deposit-amount" className="text-sm font-semibold text-white">
-                                      Deposit Amount
-                                    </Label>
-                                    <Input
-                                      value={amount}
-                                      onChange={(e) => setAmount(e.target.value)}
-                                      id="deposit-amount"
-                                      type="number"
-                                      placeholder="1000"
-                                      className="input-dark text-base py-3 rounded-lg placeholder:text-slate-500"
-                                    />
+                                  {/* Deposit Amount with Balance Display */}
+                                  <div className="space-y-2 mt-5">
+                                    <div className="flex items-center justify-between">
+                                      <Label htmlFor="deposit-amount" className="text-sm font-semibold text-white">
+                                        Deposit Amount
+                                      </Label>
+                                      <div className="flex items-center space-x-2">
+                                        <span className="text-xs text-slate-400">
+                                          Balance: {isBalanceLoading ? (
+                                            <span className="animate-pulse">Loading...</span>
+                                          ) : (
+                                            <span className="text-slate-300">{balanceFormatted} {selectedAsset.symbol}</span>
+                                          )}
+                                        </span>
+                                        <Button
+                                          type="button"
+                                          size="sm"
+                                          variant="outline"
+                                          className="h-6 px-2 text-xs border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
+                                          onClick={handleMaxClick}
+                                          disabled={isBalanceLoading || balanceNumber <= 0}
+                                        >
+                                          Max
+                                        </Button>
+                                      </div>
+                                    </div>
+                                    <div className="relative">
+                                      <Input
+                                        value={amount}
+                                        onChange={(e) => setAmount(e.target.value)}
+                                        id="deposit-amount"
+                                        type="number"
+                                        placeholder="0.00"
+                                        className="input-dark text-base py-3 rounded-lg placeholder:text-slate-500 pr-16"
+                                      />
+                                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                        <span className="text-sm text-slate-400">{selectedAsset.symbol}</span>
+                                      </div>
+                                    </div>
+                                    {/* Balance validation warning */}
+                                    {amount && parseFloat(amount) > balanceNumber && (
+                                      <div className="text-xs text-red-400 flex items-center space-x-1">
+                                        <span>⚠️</span>
+                                        <span>Insufficient balance. You have {balanceFormatted} {selectedAsset.symbol}</span>
+                                      </div>
+                                    )}
                                   </div>
 
                                   {/* <div className="bg-slate-800/50 rounded-lg p-3">
@@ -399,7 +452,8 @@ export default function SupplyPage() {
                             <Button
                               size="lg"
                               onClick={() => handleSupply()}
-                              className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-lg py-3 text-sm font-semibold transition-all"
+                              disabled={!amount || parseFloat(amount) <= 0 || parseFloat(amount) > balanceNumber || isBalanceLoading || transactionState.currentStep !== 'idle'}
+                              className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-lg py-3 text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               Supply
                               <TrendingUp className="ml-2 h-4 w-4" />
@@ -420,6 +474,7 @@ export default function SupplyPage() {
                 setSelectedWithdrawPosition(null)
               }}
               selectedPosition={selectedWithdrawPosition}
+              refetchBalance = {refetchBalance}
             />
             
 

@@ -13,12 +13,14 @@ interface WithdrawModalProps {
   isOpen: boolean
   onClose: () => void
   selectedPosition: FormattedUserDebtData
+  refetchBalance: () => void
 }
 
 export default function WithdrawModal({ 
   isOpen, 
   onClose, 
-  selectedPosition 
+  selectedPosition,
+  refetchBalance 
 }: WithdrawModalProps) {
   const [withdrawAmount, setWithdrawAmount] = useState("")
   const { toast } = useToast()
@@ -97,6 +99,7 @@ export default function WithdrawModal({
       })
       refetchAssets()
       resetTransaction()
+      refetchBalance()
       onClose()
       setWithdrawAmount("")
     }
