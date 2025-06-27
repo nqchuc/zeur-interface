@@ -77,6 +77,7 @@ export interface FormattedAssetData {
   isFrozen: boolean
   isPaused: boolean
   protocols: string[]
+  currentPrice?: number
 }
 
 export interface FormattedUserDebtData {
@@ -90,4 +91,5 @@ export interface FormattedUserDebtData {
   utilizationRate: string
   supplyRate: string
   decimals: number
+  currentPrice?: number
 }

@@ -244,7 +244,7 @@ export default function DashboardPage() {
                   {/* <div className="text-lg font-bold text-green-400">{strategy.apy}</div> */}
                   <div className="flex flex-row gap-3 text-sm">
                       <div>
-                        <div className="text-slate-400">Current Holding</div>
+                        <div className="text-slate-400">Staked Amount</div>
                         <div className="font-semibold text-white">1000 EURC</div>
                       </div>
                       <div>

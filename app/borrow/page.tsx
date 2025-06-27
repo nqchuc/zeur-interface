@@ -21,8 +21,11 @@ import { userCollateralPositions } from "@/lib/constants"
 import { formatNumber, formatPercentage } from "@/lib/helper"
 import { useSupply } from "@/hooks/contexts/SupplyHookContext"
 import { FormattedCollateralData, useBorrow } from "@/hooks/contexts/BorrowHookContext"
-import { useTokenBalance, getMaxSupplyAmount } from "@/hooks/useTokenBalance"
+import { useTokenBalance, getMaxSupplyAmount, isNativeToken } from "@/hooks/useTokenBalance"
 import { useToast } from "@/hooks/useToast"
+import { formatUnits } from "viem"
+import WithdrawModal from "@/components/modal/WithdrawModal"
+import RepayModal from "@/components/modal/RepayModal"
 
 export default function BorrowPage() {
   const [activeTab, setActiveTab] = useState("supply") // "supply" or "borrow"
@@ -33,6 +36,14 @@ export default function BorrowPage() {
   const [maxLtv, setMaxLtv] = useState(0.0);
   const [ltv, setLtv] = useState([0])
   const { toast } = useToast()
+  
+  // withdraw dialog
+  const [isWithdrawDialogOpen, setIsWithdrawDialogOpen] = useState(false)
+  const [selectedWithdrawPosition, setSelectedWithdrawPosition] = useState<any>(null)
+
+  // repay dialog
+  const [isRepayDialogOpen, setIsRepayDialogOpen] = useState(false)
+  const [selectedRepayPosition, setSelectedRepayPosition] = useState<any>(null)
 
   // Get user's collateral token balance for the selected asset
   const {
@@ -61,26 +72,65 @@ export default function BorrowPage() {
   } = useBorrow();
 
   // Get user's current borrow balance for selected borrow asset
-  const currentBorrowBalance = userBorrowPositions.find(
-    pos => pos.symbol === borrowAsset
-  )?.borrowBalance || "0"
+  const currentBorrowBalance = userData && userData.availableBorrowsValue ? (Number((formatUnits(userData.availableBorrowsValue, 8))) / 1.17 ).toFixed(2) : "0"
+
+  // Calculate LTV from borrow amount (simplified)
+  const calculateLtvFromBorrowAmount = (borrowAmt: string) => {
+    
+    const borrowValue = Number.parseFloat(borrowAmt)
+    const calculatedLtv = (borrowValue / Number(currentBorrowBalance)) * 100
+
+
+    
+    return Math.min(Math.max(calculatedLtv, 0), maxLtv) // Clamp between 0 and maxLtv
+  }
+
+  // Calculate borrow amount from LTV (simplified)
+  const calculateBorrowAmountFromLtv = (ltvValue = ltv[0]) => {
+    if ( !ltvValue) return "0"
+    
+
+    // Simple calculation: LTV% of collateral value = borrow amount
+    const borrowAmount = (Number(currentBorrowBalance) * ltvValue / maxLtv)
+    return borrowAmount > 0 ? borrowAmount.toFixed(2) : "0"
+  }
 
   // Handle max button click for collateral
   const handleMaxCollateralClick = () => {
     if (collateralAsset && collateralBalanceNumber > 0) {
-      const maxAmount = getMaxSupplyAmount(collateralBalanceNumber, false)
+      const maxAmount = getMaxSupplyAmount(collateralBalanceNumber, collateralAsset.asset)
       setCollateralAmount(maxAmount)
     }
   }
 
-  const calculateBorrowAmount = () => {
-    if (!collateralAmount) return "0"
-    if (!collateralAsset) return "0"
-    const collateralValue =
-      Number.parseFloat(collateralAmount) *
-      (collateralAssets.find((a) => a.symbol === collateralAsset?.symbol)?.currentPrice  || 0) 
+  // Handle max button click for borrow
+  const handleMaxBorrowClick = () => {
+    // Set LTV to maximum and calculate borrow amount
+    setLtv([maxLtv])
+    let maxBorrowAmount = Number(currentBorrowBalance).toFixed(2)
+    setBorrowAmount(maxBorrowAmount)
+  }
 
-    return ((collateralValue  / 1.15) * ltv[0] / 100 ).toFixed(6)
+  // Handle borrow amount change - update LTV accordingly
+  const handleBorrowAmountChange = (value: string) => {
+    setBorrowAmount(value)
+    
+    // Calculate and update LTV based on new borrow amount
+    if (value && collateralAmount && collateralAsset) {
+      const newLtv = calculateLtvFromBorrowAmount(value)
+      setLtv([Math.round(newLtv)])
+    } else if (!value) {
+      setLtv([0])
+    }
+  }
+
+  // Handle LTV slider change - update borrow amount accordingly
+  const handleLtvChange = (newLtv: number[]) => {
+    setLtv(newLtv)
+    
+    // Calculate and update borrow amount based on new LTV
+    const newBorrowAmount = calculateBorrowAmountFromLtv(newLtv[0])
+    setBorrowAmount(newBorrowAmount)
   }
 
   const calculateHealthFactor = () => {
@@ -91,21 +141,28 @@ export default function BorrowPage() {
     return { value: 1.0, status: "Risky", color: "text-red-400" }
   }
 
+  // Update borrow amount when collateral amount or asset changes (but not LTV to avoid conflicts)
   useEffect(() => {
-    setBorrowAmount(calculateBorrowAmount())
-  }, [collateralAmount, collateralAsset, ltv])
+    if (collateralAmount && collateralAsset && ltv[0] > 0) {
+      const newBorrowAmount = calculateBorrowAmountFromLtv(ltv[0])
+      setBorrowAmount(newBorrowAmount)
+    } else if (!collateralAmount) {
+      setBorrowAmount("0")
+      setLtv([0])
+    }
+  }, [collateralAmount, collateralAsset]) // Removed ltv dependency to prevent conflicts
 
   const healthFactor = calculateHealthFactor()
-
-  useEffect(() => {
-    setMaxLtv(Number(collateralAsset?.ltv))
-  }, [collateralAsset])
   
   useEffect(() => {
     if(collateralAssets[0]){
       setCollateralAsset(collateralAssets[0])
     }
   }, [collateralAssets])
+
+  useEffect(() => {
+    setMaxLtv(Number(collateralAsset?.ltv))
+  }, [collateralAsset])
 
   // Handle supply collateral submission
   const handleSupplyCollateral = async () => {
@@ -143,12 +200,15 @@ export default function BorrowPage() {
         description: `Supplying ${collateralAmount} ${collateralAsset?.symbol} as collateral`,
       })
 
+      // Check if this is a native token
+      const isNative = isNativeToken(collateralAsset!.asset)
+
       await supplyCollateral({
         asset: collateralAsset!.asset,
         amount: collateralAmount,
         symbol: collateralAsset!.symbol,
         decimals: collateralAsset!.decimals,
-        isNativeToken: false
+        isNativeToken: isNative
       })
     } catch (error) {
       console.error('Supply collateral error:', error)
@@ -219,6 +279,17 @@ export default function BorrowPage() {
       }
     }
   }, [transactionState.isCompleted, transactionState, refetchAssets, refetchCollateralBalance, refetchUserData, resetTransaction])
+
+
+  const handleWithdrawClick = (position: any) => {
+    setSelectedWithdrawPosition(position)
+    setIsWithdrawDialogOpen(true)
+  } 
+
+  const handleRepayClick = (position: any) => {
+    setSelectedRepayPosition(position)
+    setIsRepayDialogOpen(true)
+  }
 
   return (
     <div className="space-y-6">
@@ -368,16 +439,8 @@ export default function BorrowPage() {
 
                         {/* Tabs for Supply Collateral vs Borrow */}
                         <div className="space-y-3">
-                          <Label className="text-sm font-semibold text-white">Action</Label>
                           <Tabs value={activeTab} onValueChange={setActiveTab}>
-                            <TabsList className="grid w-full grid-cols-2 bg-slate-800/50">
-                              <TabsTrigger value="supply" className="text-white data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-400">
-                                Supply Collateral
-                              </TabsTrigger>
-                              <TabsTrigger value="borrow" className="text-white data-[state=active]:bg-blue-500/20 data-[state=active]:text-blue-400">
-                                Borrow
-                              </TabsTrigger>
-                            </TabsList>
+
                             
                             <TabsContent value="supply" className="space-y-3">
                               {/* Collateral Amount Input */}
@@ -430,12 +493,41 @@ export default function BorrowPage() {
                             </TabsContent>
                             
                             <TabsContent value="borrow" className="space-y-3">
-                              {/* Current Borrow Balance */}
-                              <div className="bg-slate-800/50 rounded-lg p-3">
-                                <div className="text-xs text-slate-400 mb-1">Current {borrowAsset} Borrowed</div>
-                                <div className="text-lg font-bold text-white">{currentBorrowBalance} {borrowAsset}</div>
-                                <div className="text-xs text-slate-400">≈ ${currentBorrowBalance} USD</div>
-                              </div>
+                              {/* Borrow Amount Input */}
+                              <div className="space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <Label htmlFor="borrow-amount" className="text-sm font-semibold text-white">
+                                      Borrow Amount
+                                    </Label>
+                                    <div className="flex items-center space-x-2">
+                                      <span className="text-xs text-slate-400">
+                                        Current: <span className="text-slate-300">{currentBorrowBalance} {borrowAsset}</span>
+                                      </span>
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-6 px-2 text-xs border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
+                                        onClick={handleMaxBorrowClick}
+                                      >
+                                        Max
+                                      </Button>
+                                    </div>
+                                  </div>
+                                  <div className="relative">
+                                    <Input
+                                      id="borrow-amount"
+                                      type="number"
+                                      placeholder="0.0"
+                                      value={borrowAmount}
+                                      onChange={(e) => handleBorrowAmountChange(e.target.value)}
+                                      className="input-dark text-base py-3 pr-16 rounded-lg placeholder:text-slate-500"
+                                    />
+                                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 font-semibold text-sm">
+                                      {borrowAsset}
+                                    </div>
+                                  </div>
+                                </div>
 
                               {/* LTV Slider */}
                               <div className="space-y-3">
@@ -446,7 +538,14 @@ export default function BorrowPage() {
                                   </Badge>
                                 </div>
                                 <div className="bg-slate-800/50 rounded-lg p-3">
-                                  <Slider value={ltv} onValueChange={setLtv} max={maxLtv} min={10} step={5} className="w-full" />
+                                  <Slider 
+                                    value={ltv} 
+                                    onValueChange={handleLtvChange} 
+                                    max={maxLtv} 
+                                    min={10} 
+                                    step={5} 
+                                    className="w-full" 
+                                  />
                                   <div className="flex justify-between text-xs text-slate-400 mt-1">
                                     <span>Conservative (10%)</span>
                                     <span>Aggressive ({maxLtv}%)</span>
@@ -482,82 +581,99 @@ export default function BorrowPage() {
                       {/* Right Column - Loan Preview */}
                       <div className="md:col-span-5 space-y-3">
                         <div className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-lg p-4 border border-purple-500/20">
-                          <h3 className="text-sm font-semibold text-white mb-3">
-                            {activeTab === 'supply' ? 'Collateral Preview' : 'Loan Preview'}
-                          </h3>
-
-                          <div className="space-y-3">
-                            {activeTab === 'supply' ? (
-                              // Supply Preview
-                              <div className="bg-slate-800/50 rounded-lg p-3">
-                                <div className="text-xs text-slate-400 mb-1">You'll Supply</div>
-                                <div className="text-lg font-bold text-white">
-                                  {collateralAmount || '0'} {collateralAsset?.symbol}
-                                </div>
-                                <div className="text-xs text-slate-400 mt-1">
-                                  ≈ ${((parseFloat(collateralAmount) || 0) * (collateralAsset?.currentPrice || 0)).toFixed(2)} USD
-                                </div>
-                              </div>
-                            ) : (
-                              // Borrow Preview
-                              <div className="bg-slate-800/50 rounded-lg p-3">
-                                <div className="text-xs text-slate-400 mb-1">You'll Receive</div>
-                                <div className="text-lg font-bold text-white">
-                                  €{borrowAmount} {borrowAsset}
-                                </div>
-                                <div className="text-xs text-slate-400 mt-1">≈ ${borrowAmount} USD</div>
-                              </div>
-                            )}
-
-                            <div className="grid grid-cols-1 gap-2">
-                              <div className="bg-slate-800/50 rounded-lg p-2">
-                                <div className="text-xs text-slate-400">Interest Rate</div>
-                                <div className="text-base font-bold text-green-400">0%</div>
-                              </div>
-                            </div>
-
-                            {activeTab === 'borrow' && (
-                              <div className="bg-slate-800/50 rounded-lg p-3">
-                                <div className="flex justify-between items-center mb-2">
-                                  <div className="text-xs text-slate-400">Health Factor</div>
-                                  <div className={`text-sm font-bold ${healthFactor.color}`}>{healthFactor.value}</div>
-                                </div>
-                                <Progress value={ltv[0]} max={85} className="h-1" />
-                                <div className="flex justify-between text-xs text-slate-400 mt-1">
-                                  <span>Safe</span>
-                                  <span>Liquidation at 85%</span>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Action Button */}
-                          <Button
-                            size="lg"
-                            onClick={activeTab === 'supply' ? handleSupplyCollateral : handleBorrow}
-                            disabled={
-                              transactionState.currentStep !== 'idle' ||
-                              (activeTab === 'supply' && 
-                                (!collateralAmount || parseFloat(collateralAmount) <= 0 || parseFloat(collateralAmount) > collateralBalanceNumber)
-                              ) ||
-                              (activeTab === 'borrow' && 
-                                (!borrowAmount || parseFloat(borrowAmount) <= 0)
-                              )
-                            }
-                            className="w-full btn-primary-purple rounded-lg py-3 text-sm font-semibold mt-3 disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {activeTab === 'supply' ? (
-                              <>
+                          {/* Tabs at the top */}
+                          <Tabs value={activeTab} onValueChange={setActiveTab}>
+                            <TabsList className="grid w-full grid-cols-2 bg-slate-800/50 mb-3">
+                              <TabsTrigger value="supply" className="text-white data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-400">
                                 Supply Collateral
-                                <TrendingUp className="ml-2 h-4 w-4" />
-                              </>
-                            ) : (
-                              <>
+                              </TabsTrigger>
+                              <TabsTrigger value="borrow" className="text-white data-[state=active]:bg-blue-500/20 data-[state=active]:text-blue-400">
                                 Borrow
-                                <ArrowRight className="ml-2 h-4 w-4" />
-                              </>
-                            )}
-                          </Button>
+                              </TabsTrigger>
+                            </TabsList>
+                            
+                            <TabsContent value="supply">
+                              <h3 className="text-sm font-semibold text-white mb-3">Collateral Preview</h3>
+                              
+                              <div className="space-y-3">
+                                {/* Supply Preview */}
+                                <div className="bg-slate-800/50 rounded-lg p-3">
+                                  <div className="text-xs text-slate-400 mb-1">You'll Supply</div>
+                                  <div className="text-lg font-bold text-white">
+                                    {collateralAmount || '0'} {collateralAsset?.symbol}
+                                  </div>
+                                  <div className="text-xs text-slate-400 mt-1">
+                                    ≈ ${((parseFloat(collateralAmount) || 0) * (collateralAsset?.currentPrice || 0)).toFixed(2)} USD
+                                  </div>
+                                </div>
+
+                                <div className="bg-slate-800/50 rounded-lg p-2">
+                                  <div className="text-xs text-slate-400">Interest Rate</div>
+                                  <div className="text-base font-bold text-green-400">0%</div>
+                                </div>
+
+                                {/* Action Button */}
+                                <Button
+                                  size="lg"
+                                  onClick={handleSupplyCollateral}
+                                  disabled={
+                                    transactionState.currentStep !== 'idle' ||
+                                    (!collateralAmount || parseFloat(collateralAmount) <= 0 || parseFloat(collateralAmount) > collateralBalanceNumber)
+                                  }
+                                  className="w-full btn-primary-purple rounded-lg py-3 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  Supply Collateral
+                                  <TrendingUp className="ml-2 h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TabsContent>
+                            
+                            <TabsContent value="borrow">
+                              <h3 className="text-sm font-semibold text-white mb-3">Loan Preview</h3>
+                              
+                              <div className="space-y-3">
+                                {/* Borrow Preview */}
+                                <div className="bg-slate-800/50 rounded-lg p-3">
+                                  <div className="text-xs text-slate-400 mb-1">You'll Receive</div>
+                                  <div className="text-lg font-bold text-white">
+                                    {borrowAmount || '0'} {borrowAsset}
+                                  </div>
+                                  <div className="text-xs text-slate-400 mt-1">≈ ${borrowAmount || '0'} USD</div>
+                                </div>
+
+                                <div className="bg-slate-800/50 rounded-lg p-2">
+                                  <div className="text-xs text-slate-400">Interest Rate</div>
+                                  <div className="text-base font-bold text-green-400">0%</div>
+                                </div>
+
+                                <div className="bg-slate-800/50 rounded-lg p-3">
+                                  <div className="flex justify-between items-center mb-2">
+                                    <div className="text-xs text-slate-400">Health Factor</div>
+                                    <div className={`text-sm font-bold ${healthFactor.color}`}>{healthFactor.value}</div>
+                                  </div>
+                                  <Progress value={ltv[0]} max={85} className="h-1" />
+                                  <div className="flex justify-between text-xs text-slate-400 mt-1">
+                                    <span>Safe</span>
+                                    <span>Liquidation at 85%</span>
+                                  </div>
+                                </div>
+
+                                {/* Action Button */}
+                                <Button
+                                  size="lg"
+                                  onClick={handleBorrow}
+                                  disabled={
+                                    transactionState.currentStep !== 'idle' ||
+                                    (!borrowAmount || parseFloat(borrowAmount) <= 0)
+                                  }
+                                  className="w-full btn-primary-purple rounded-lg py-3 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  Borrow
+                                  <ArrowRight className="ml-2 h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TabsContent>
+                          </Tabs>
                         </div>
                       </div>
                     </div>
@@ -618,7 +734,7 @@ export default function BorrowPage() {
                           </td>
                           <td className="text-right py-4">
                             <div className="flex justify-end space-x-2">
-                              <Button size="sm" variant="outline" className="text-xs h-7 px-2">
+                              <Button size="sm" onClick={() => handleWithdrawClick(position)} variant="outline" className="text-xs h-7 px-2">
                                 Withdraw
                               </Button>
                               <Button size="sm" variant="outline" className="text-xs h-7 px-2">
@@ -633,6 +749,26 @@ export default function BorrowPage() {
                 </div>
               </CardContent>
             </Card>
+
+            <WithdrawModal
+                          isOpen={isWithdrawDialogOpen}
+                          onClose={() => {
+                            setIsWithdrawDialogOpen(false)
+                            setSelectedWithdrawPosition(null)
+                          }}
+                          selectedPosition={selectedWithdrawPosition}
+                          refetchBalance = {refetchCollateralBalance}
+                          isCollateral
+                        />
+
+              <RepayModal isOpen={isRepayDialogOpen}
+                          onClose={() => {
+                            setIsRepayDialogOpen(false)
+                            setSelectedRepayPosition(null)
+                          }}
+                          selectedPosition={selectedRepayPosition}
+                          refetchBalance = {refetchAssets}
+                        />
 
             {/* User Debt Positions Table */}
             <Card className="card-dark rounded-xl">
@@ -681,7 +817,7 @@ export default function BorrowPage() {
                           </td>
                           <td className="text-right py-4">
                             <div className="flex justify-end space-x-2">
-                              <Button size="sm" variant="outline" className="text-xs h-7 px-2">
+                              <Button onClick={() => handleRepayClick(position)} size="sm" variant="outline" className="text-xs h-7 px-2">
                                 Repay
                               </Button>
                               <Button size="sm" variant="outline" className="text-xs h-7 px-2">

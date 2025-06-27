@@ -13,12 +13,12 @@ import { UI_POOL_DATA_ADDRESS, UIPoolDataABI } from '@/contracts/UIPoolData'
 import { PoolABI, POOL_ADDRESS } from '@/contracts/Pool'
 import { ASSET_METADATA } from '@/lib/constants'
 import { TransactionState, useTransactions, ZeurTransactionType } from '@/hooks/useTransactions'
+import { useSupply } from './SupplyHookContext'
 
 export interface FormattedCollateralData extends FormattedAssetData {
   ltv: string
   liquidationThreshold: string
   liquidationBonus: string
-  currentPrice?: number
   apy?: string
 }
 
@@ -31,6 +31,8 @@ export interface FormattedUserCollateralData {
   balanceUSD: string
   ltv: string
   liquidationThreshold: string
+  currentPrice?: number
+  decimals: number
 }
 
 export interface FormattedUserBorrowData {
@@ -41,6 +43,8 @@ export interface FormattedUserBorrowData {
   borrowBalance: string
   borrowBalanceUSD: string
   borrowRate: string
+  currentPrice?: number
+  decimals: number
 }
 
 interface SupplyCollateralParams {
@@ -51,7 +55,7 @@ interface SupplyCollateralParams {
   symbol: string
 }
 
-interface BorrowParams {
+interface BorrowAndRepayParams {
   asset: Address
   amount: string
   decimals: number
@@ -75,7 +79,8 @@ interface BorrowContextValue {
   
   // Transaction functions
   supplyCollateral: (params: SupplyCollateralParams) => Promise<void>
-  borrow: (params: BorrowParams) => Promise<void>
+  borrow: (params: BorrowAndRepayParams) => Promise<void>
+  repay: (params: BorrowAndRepayParams) => Promise<void>
   
   // Transaction state
   transactionState: TransactionState
@@ -92,6 +97,7 @@ export function BorrowProvider({ children }: { children: React.ReactNode }) {
   
   // Universal transactions hook
   const {execute, transactionState, reset} = useTransactions()
+  const {debtAssets} = useSupply()
   
   // Fetch only collateral asset list
   const { data: collateralAssetList, isLoading: isLoadingCollateralList, error: errorCollateralList, refetch: refetchCollateralList } = useReadContract({
@@ -134,6 +140,7 @@ export function BorrowProvider({ children }: { children: React.ReactNode }) {
         if (result.status !== 'success' || !result.result) return null
         
         const assetData = result.result as any
+
         const assetAddress = collateralAssetList[index]
         const metadata = ASSET_METADATA[assetAddress] || {
           symbol: 'UNKNOWN',
@@ -164,15 +171,12 @@ export function BorrowProvider({ children }: { children: React.ReactNode }) {
           ltv: assetData.ltv ? (assetData.ltv / 100).toFixed(1) : '0',
           liquidationThreshold: assetData.liquidationThreshold ? (assetData.liquidationThreshold / 100).toFixed(1) : '0',
           liquidationBonus: assetData.liquidationBonus ? (assetData.liquidationBonus / 100).toFixed(1) : '0',
-          // Add mock prices for demo - in production, get from price oracle
-          currentPrice: metadata.symbol === 'ETH' ? 3420 : 
-                       metadata.symbol === 'stETH' ? 3415 : 
-                       metadata.symbol === 'WBTC' ? 67800 : 
-                       metadata.symbol === 'LINK' ? 14.5 : 0,
-          apy: metadata.symbol === 'ETH' ? '4.2%' : 
-               metadata.symbol === 'stETH' ? '5.8%' : 
-               metadata.symbol === 'WBTC' ? '2.9%' : 
-               metadata.symbol === 'LINK' ? '3.1%' : '0%',
+          ///get from price oracle
+          currentPrice: Number(formatUnits(assetData.price, 8),)
+          // apy: metadata.symbol === 'ETH' ? '4.2%' : 
+          //      metadata.symbol === 'stETH' ? '5.8%' : 
+          //      metadata.symbol === 'WBTC' ? '2.9%' : 
+          //      metadata.symbol === 'LINK' ? '3.1%' : '0%',
         }
         
         return formatted
@@ -196,7 +200,7 @@ export function BorrowProvider({ children }: { children: React.ReactNode }) {
       const assetData = formattedCollateralAssets.find(a => a.asset === assetAddress)
       const decimals = assetData?.decimals || 18
       const price = assetData?.currentPrice || 0
-      
+  
       const supplyBalance = formatUnits(position.supplyBalance, decimals)
       const balanceUSD = (parseFloat(supplyBalance) * price).toFixed(2)
       
@@ -209,27 +213,27 @@ export function BorrowProvider({ children }: { children: React.ReactNode }) {
         balanceUSD,
         ltv: assetData?.ltv || '0',
         liquidationThreshold: assetData?.liquidationThreshold || '0',
+        currentPrice: price,
+        decimals: assetData?.decimals || 18
       }
     })
   }, [userData, formattedCollateralAssets])
 
   // Format user borrow positions
   const formattedUserBorrowPositions = useMemo(() => {
-    if (!userData) return []
-    
+    if (!userData) return []    
     return userData.userDebtData.map((position) => {
       const assetAddress = position.debtAsset
+      const assetData = debtAssets.find(a => a.asset === assetAddress)
+
       const metadata = ASSET_METADATA[assetAddress] || {
         symbol: 'UNKNOWN',
         name: 'Unknown Asset',
         icon: '?',
       }
-      
-      // Find decimals from asset data
-      const decimals = 18 // Most stablecoins are 18 decimals
-      
-      const borrowBalance = formatUnits(position.borrowBalance, decimals)
-      const borrowBalanceUSD = (parseFloat(borrowBalance) * 1.0).toFixed(2) // Assume 1:1 for stablecoins
+            
+      const borrowBalance = formatUnits(position.borrowBalance, 6)
+      const borrowBalanceUSD = assetData?.currentPrice ? (parseFloat(borrowBalance) * assetData?.currentPrice).toFixed(2) : '0'
       
       return {
         debtAsset: position.debtAsset,
@@ -238,10 +242,12 @@ export function BorrowProvider({ children }: { children: React.ReactNode }) {
         icon: metadata.icon,
         borrowBalance,
         borrowBalanceUSD,
-        borrowRate: '0', // Zero interest rate
+        borrowRate: '0', // Zero interest rate,
+        currentPrice: assetData?.currentPrice || 0,
+        decimals: 6
       }
     })
-  }, [userData])
+  }, [userData, debtAssets])
   
   // Supply collateral function
   const supplyCollateral = async ({ asset, amount, decimals, isNativeToken = false, symbol }: SupplyCollateralParams) => {
@@ -284,7 +290,7 @@ export function BorrowProvider({ children }: { children: React.ReactNode }) {
   }
 
   // Borrow function
-  const borrow = async ({ asset, amount, decimals, symbol }: BorrowParams) => {
+  const borrow = async ({ asset, amount, decimals, symbol }: BorrowAndRepayParams) => {
     if (!userAddress) {
       throw new Error('User not connected')
     }
@@ -302,6 +308,39 @@ export function BorrowProvider({ children }: { children: React.ReactNode }) {
         args: [asset, amountInWei, userAddress],
       },
       // No approval needed for borrowing
+      metadata: {
+        asset: symbol,
+        amount: amount,
+        decimals: decimals,
+      }
+    }
+    
+    // Execute transaction
+    await execute(transactionRequest)
+  }
+
+  const repay = async ({ asset, amount, decimals, symbol }: BorrowAndRepayParams) => {
+    if (!userAddress) {
+      throw new Error('User not connected')
+    }
+    
+    console.log('🚀 Starting repay transaction', { asset, amount, decimals, symbol })
+    const amountInWei = parseUnits(amount, decimals)
+
+    // Create transaction request
+    const transactionRequest = {
+      type: 'repay' as ZeurTransactionType,
+      writeContract: {
+        address: POOL_ADDRESS,
+        abi: PoolABI,
+        functionName: 'repay',
+        args: [asset, amountInWei, userAddress],
+      },
+      approval: {
+        tokenAddress: asset,
+        tokenAmount: amountInWei,
+        spenderAddress: POOL_ADDRESS,
+      },
       metadata: {
         asset: symbol,
         amount: amount,
@@ -341,6 +380,7 @@ export function BorrowProvider({ children }: { children: React.ReactNode }) {
     // Transaction functions
     supplyCollateral,
     borrow,
+    repay,
     
     // Transaction state
     transactionState,

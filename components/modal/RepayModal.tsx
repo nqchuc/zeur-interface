@@ -8,47 +8,51 @@ import { useToast } from "@/hooks/useToast"
 import { useSupply } from "@/hooks/contexts/SupplyHookContext"
 import { FormattedAssetData, FormattedUserDebtData } from "@/types/contracts"
 import { useTransactions } from "@/hooks/useTransactions"
-import { FormattedUserCollateralData } from "@/hooks/contexts/BorrowHookContext"
+import { FormattedUserBorrowData, FormattedUserCollateralData, useBorrow } from "@/hooks/contexts/BorrowHookContext"
 
-interface WithdrawModalProps {
+interface RepayModalProps {
   isOpen: boolean
   onClose: () => void
-  selectedPosition: FormattedUserDebtData | FormattedUserCollateralData 
+  selectedPosition: FormattedUserBorrowData
   refetchBalance: () => void
-  isCollateral?: boolean
 }
 
-export default function WithdrawModal({ 
+export default function RepayModal({ 
   isOpen, 
   onClose, 
   selectedPosition,
   refetchBalance ,
-  isCollateral = false
-}: WithdrawModalProps) {
-  const [withdrawAmount, setWithdrawAmount] = useState("")
+}: RepayModalProps) {
+  const [repayAmount, setRepayAmount] = useState("")
   const { toast } = useToast()
   
-  // Use the supply context which now includes withdraw functionality
+  // Use the supply context which now includes Repay functionality
+//   const {
+//     Repay,
+//     transactionState,
+//     resetTransaction,
+//     refetchAssets
+//   } = useSupply()
   const {
-    withdraw,
+    repay,
     transactionState,
     resetTransaction,
-    refetchAssets
-  } = useSupply()
+    refetchAssets,
+  } = useBorrow();
 
 
-  // Handle withdraw submission
-  const handleWithdraw = async () => {
-    if (!withdrawAmount) {
+  // Handle Repay submission
+  const handleRepay = async () => {
+    if (!repayAmount) {
       toast({
         variant: "destructive",
         title: "⚠️ Amount Required",
-        description: `Please enter the amount of ${selectedPosition?.symbol} you want to withdraw`,
+        description: `Please enter the amount of ${selectedPosition?.symbol} you want to Repay`,
       })
       return
     }
 
-    const numericAmount = parseFloat(withdrawAmount)
+    const numericAmount = parseFloat(repayAmount)
     if (isNaN(numericAmount) || numericAmount <= 0) {
       toast({
         variant: "destructive",
@@ -58,12 +62,12 @@ export default function WithdrawModal({
       return
     }
 
-    const maxWithdraw = parseFloat(selectedPosition?.supplyBalance || "0")
-    if (numericAmount > maxWithdraw) {
+    const maxRepay = parseFloat(selectedPosition?.borrowBalance || "0")
+    if (numericAmount > maxRepay) {
       toast({
         variant: "destructive",
         title: "⚠️ Insufficient Balance",
-        description: `You can only withdraw up to ${maxWithdraw} ${selectedPosition?.symbol}`,
+        description: `You can only Repay up to ${maxRepay} ${selectedPosition?.symbol}`,
       })
       return
     }
@@ -71,65 +75,47 @@ export default function WithdrawModal({
     try {
       // Show initial toast to indicate process has started
       toast({
-        title: "🚀 Starting Withdraw Process",
-        description: `Withdrawing ${withdrawAmount} ${selectedPosition?.symbol} from the pool`,
+        title: "🚀 Starting Repay Process",
+        description: `Repaying ${repayAmount} ${selectedPosition?.symbol} from the pool`,
       })
 
-      let withdrawParams
-
-      if(isCollateral) {
-        selectedPosition = selectedPosition as FormattedUserCollateralData
-
-        console.log(selectedPosition, "SELECTED POSITION")
-        withdrawParams = {
-          asset: selectedPosition.collateralAsset,
-          amount: withdrawAmount,
-          decimals: selectedPosition.decimals || 18,
-          symbol: selectedPosition.symbol
-        }
-      }else {
-        selectedPosition = selectedPosition as FormattedUserDebtData
-
-        withdrawParams = {
+      // Execute Repay transaction using context
+      await repay({
           asset: selectedPosition.debtAsset,
-          amount: withdrawAmount,
+          amount: repayAmount,
           decimals: selectedPosition.decimals,
           symbol: selectedPosition.symbol
-        }
-      }
-
-      // Execute withdraw transaction using context
-      await withdraw(withdrawParams);
+        });
 
     } catch (error) {
-      console.error('Withdraw error:', error)
+      console.error('Repay error:', error)
       toast({
         variant: "destructive",
-        title: "❌ Withdraw Failed",
-        description: `Failed to withdraw ${selectedPosition?.symbol}`,
+        title: "❌ Repay Failed",
+        description: `Failed to Repay ${selectedPosition?.symbol}`,
       })
     }
   }
 
-  // Handle transaction completion - close modal when withdraw completes
+  // Handle transaction completion - close modal when Repay completes
   useEffect(() => {
-    if (transactionState.isCompleted && transactionState.transactionType === "withdraw") {
+    if (transactionState.isCompleted && transactionState.transactionType === "repay") {
       toast({
-        title: "🎉 Withdrawal Successful",
+        title: "🎉 Repay Successful",
         variant: "success",
-        description: `Successfully withdraw ${transactionState.metadata?.amount} ${transactionState.metadata?.asset} from the pool`,
+        description: `Successfully Repay ${transactionState.metadata?.amount} ${transactionState.metadata?.asset} from the pool`,
       })
       refetchAssets()
       resetTransaction()
       refetchBalance()
       onClose()
-      setWithdrawAmount("")
+      setRepayAmount("")
     }
 
-    if (transactionState.isCompleted && transactionState.transactionType === "withdraw" && transactionState.error) {
+    if (transactionState.isCompleted && transactionState.transactionType === "repay" && transactionState.error) {
       toast({
         variant: "destructive",
-        title: "❌ Withdraw Failed",
+        title: "❌ Repay Failed",
         description: transactionState.error,
       })
     }
@@ -138,10 +124,10 @@ export default function WithdrawModal({
 
   // Handle transaction errors
   useEffect(() => {
-    if (transactionState.error && transactionState.transactionType === "withdraw") {
+    if (transactionState.error && transactionState.transactionType === "repay") {
       toast({
         variant: "destructive",
-        title: "❌ Withdraw Failed",
+        title: "❌ Repay Failed",
         description: transactionState.error,
       })
     }
@@ -175,10 +161,10 @@ export default function WithdrawModal({
           <div className="flex flex-col space-y-1.5 text-center sm:text-left">
             <h2 className="text-lg font-semibold leading-none tracking-tight text-white flex items-center space-x-2">
               <Wallet className="h-5 w-5 text-blue-400" />
-              <span>Withdraw {selectedPosition?.symbol}</span>
+              <span>Repay {selectedPosition?.symbol}</span>
             </h2>
             <p className="text-sm text-slate-300">
-              Enter the amount you want to withdraw from your supply position.
+              Enter the amount you want to Repay from your supply position.
             </p>
           </div>
         </div>
@@ -202,15 +188,15 @@ export default function WithdrawModal({
               
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <div className="text-slate-400">Available Balance</div>
+                  <div className="text-slate-400">Debt Balance</div>
                   <div className="font-semibold text-white">
-                    {selectedPosition.supplyBalance} {selectedPosition.symbol}
+                    {selectedPosition.borrowBalance} {selectedPosition.symbol}
                   </div>
                 </div>
                 <div>
                   <div className="text-slate-400">USD Value</div>
                   <div className="font-semibold text-white">
-                    ${selectedPosition.currentPrice ? (Number(selectedPosition.supplyBalance) * selectedPosition.currentPrice).toFixed(2) : "0.0"}
+                    ${selectedPosition.currentPrice ? (Number(selectedPosition.borrowBalance) * selectedPosition.currentPrice).toFixed(2) : "0.0"}
                   </div>
                 </div>
               </div>
@@ -219,18 +205,18 @@ export default function WithdrawModal({
 
           {/* Amount Input */}
           <div className="space-y-2">
-            <Label htmlFor="withdraw-amount" className="text-sm font-semibold text-white">
-              Withdraw Amount
+            <Label htmlFor="Repay-amount" className="text-sm font-semibold text-white">
+              Repay Amount
             </Label>
             <div className="relative">
               <Input
-                id="withdraw-amount"
+                id="Repay-amount"
                 type="number"
                 placeholder="0.00"
-                value={withdrawAmount}
-                onChange={(e) => setWithdrawAmount(e.target.value)}
+                value={repayAmount}
+                onChange={(e) => setRepayAmount(e.target.value)}
                 className="input-dark text-base py-3 pr-16 rounded-lg placeholder:text-slate-500 bg-slate-800 border-slate-600 text-white"
-                disabled={transactionState.isProcessing && transactionState.transactionType === "withdraw"}
+                disabled={transactionState.isProcessing && transactionState.transactionType === "repay"}
               />
               <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                 <span className="text-sm text-slate-400">
@@ -249,10 +235,10 @@ export default function WithdrawModal({
                     variant="outline"
                     size="sm"
                     className="text-xs h-6 px-2 bg-slate-800 border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
-                    disabled={transactionState.isProcessing && transactionState.transactionType === "withdraw"}
+                    disabled={transactionState.isProcessing && transactionState.transactionType === "repay"}
                     onClick={() => {
-                      const maxAmount = parseFloat(selectedPosition?.supplyBalance || "0");
-                      setWithdrawAmount((maxAmount * multiplier).toString());
+                      const maxAmount = parseFloat(selectedPosition?.borrowBalance || "0");
+                      setRepayAmount((maxAmount * multiplier).toString());
                     }}
                   >
                     {percentage}
@@ -270,16 +256,16 @@ export default function WithdrawModal({
               variant="outline"
               onClick={onClose}
               className="w-full sm:w-auto bg-slate-800 border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
-              disabled={transactionState.isProcessing && transactionState.transactionType === "withdraw"}
+              disabled={transactionState.isProcessing && transactionState.transactionType === "repay"}
             >
               Cancel
             </Button>
             <Button
-              onClick={handleWithdraw}
+              onClick={handleRepay}
               className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white"
-              disabled={!withdrawAmount || parseFloat(withdrawAmount) <= 0 || (transactionState.isProcessing && transactionState.transactionType === "withdraw")}
+              disabled={!repayAmount || parseFloat(repayAmount) <= 0 || (transactionState.isProcessing && transactionState.transactionType === "repay")}
             >
-              {transactionState.isProcessing && transactionState.transactionType === "withdraw" ? transactionState.statusMessage : 'Withdraw'}
+              {transactionState.isProcessing && transactionState.transactionType === "repay" ? transactionState.statusMessage : 'repay'}
             </Button>
           </div>
         </div>

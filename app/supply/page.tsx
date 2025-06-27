@@ -50,7 +50,7 @@ export default function SupplyPage() {
     // Handle max button click
     const handleMaxClick = () => {
       if (selectedLendAsset && balanceNumber > 0) {
-        const maxAmount = getMaxSupplyAmount(balanceNumber, false) // Assuming ERC20 tokens
+        const maxAmount = getMaxSupplyAmount(balanceNumber, selectedLendAsset.asset) // Assuming ERC20 tokens
         setAmount(maxAmount)
       }
     }
@@ -384,28 +384,6 @@ export default function SupplyPage() {
                             })()}
                           </div>
                         </div>
-
-                        {/* Amount Input */}
-                        
-
-                        {/* Duration Selector */}
-                        {/* <div className="space-y-3">
-                          <Label className="text-sm font-semibold text-white">Lock Duration (Optional)</Label>
-                          <div className="flex space-x-2">
-                            {["Flexible", "30 Days", "90 Days", "180 Days"].map((duration, index) => (
-                              <Button
-                                key={index}
-                                variant="outline"
-                                className="token-selector-dark rounded-lg text-white hover:border-purple-500 text-xs px-2 py-1"
-                              >
-                                {duration}
-                              </Button>
-                            ))}
-                          </div>
-                          <p className="text-xs text-slate-400">
-                            Longer lock periods earn higher APY. Flexible deposits can be withdrawn anytime.
-                          </p>
-                        </div> */}
                       </div>
 
                       {/* Right Column */}

@@ -93,7 +93,7 @@ export function useTransactions() {
   // Approval confirmation
   const {
     isLoading: isApprovalConfirming,
-    isSuccess: isApprovalConfirmed
+    isSuccess: isApprovalConfirmed,
   } = useWaitForTransactionReceipt({
     hash: approvalTxHash,
   })
@@ -110,7 +110,8 @@ export function useTransactions() {
   // Main transaction confirmation
   const {
     isLoading: isTransactionConfirming,
-    isSuccess: isTransactionConfirmed
+    isSuccess: isTransactionConfirmed,
+    error: confirmationError
   } = useWaitForTransactionReceipt({
     hash: txHash,
   })

@@ -26,6 +26,7 @@ interface WithdrawFunctionParams {
   asset: Address
   amount: string
   decimals: number
+  symbol: string
 }
 
 
@@ -90,10 +91,6 @@ export function SupplyProvider({ children }: { children: React.ReactNode }) {
   const { data: assetsData, isLoading: isLoadingData, error: errorData, refetch: refetchData } = useReadContracts({
     contracts: assetDataCalls,
   })
-
-  useEffect(() => {
-    console.log(errorData, "ERROR DATA")
-  }, [errorData])
   
   // Fetch user data
   const { data: userData, isLoading: isLoadingUser, error: errorUser, refetch: refetchUser } = useReadContract({
@@ -105,7 +102,6 @@ export function SupplyProvider({ children }: { children: React.ReactNode }) {
   
   // Format asset data
   const formattedAssets = useMemo(() => {
-    console.log(assetsData, "ASSET DATA Debt Token")
     if (!assetsData || !debtAssetList) return []
     
     return assetsData
@@ -140,6 +136,8 @@ export function SupplyProvider({ children }: { children: React.ReactNode }) {
           isFrozen: assetData.isFrozen,
           isPaused: assetData.isPaused,
           protocols: metadata.protocols,
+          currentPrice: Number(formatUnits(assetData.price, 8),)
+          
         }
         
         return formatted
@@ -161,8 +159,6 @@ export function SupplyProvider({ children }: { children: React.ReactNode }) {
       
       // Find decimals from asset data
       const assetData = formattedAssets.find(a => a.asset === assetAddress)
-
-
       const decimals = assetData?.decimals || 18
       
       const supplyBalance = formatUnits(position.supplyBalance, decimals)
@@ -179,7 +175,8 @@ export function SupplyProvider({ children }: { children: React.ReactNode }) {
         supplyBalance,
         borrowBalance,
         netBorrow,
-        decimals: decimals
+        decimals: decimals,
+        currentPrice: assetData?.currentPrice
       }
     })
   }, [userData, formattedAssets])
@@ -189,8 +186,6 @@ export function SupplyProvider({ children }: { children: React.ReactNode }) {
     if (!userAddress) {
       throw new Error('User not connected')
     }
-    
-    console.log(decimals, "DECIMALS")
     const amountInWei = parseUnits(amount, decimals)
     
     // Create transaction request
@@ -222,7 +217,7 @@ export function SupplyProvider({ children }: { children: React.ReactNode }) {
   }
 
 
-  const withdraw = async ({ asset, amount, decimals }: WithdrawFunctionParams) => {
+  const withdraw = async ({ asset, amount, decimals, symbol }: WithdrawFunctionParams) => {
     if (!userAddress) {
       throw new Error('User not connected')
     }
@@ -232,8 +227,6 @@ export function SupplyProvider({ children }: { children: React.ReactNode }) {
     
     // Get asset metadata for better logging
     const assetMetadata = formattedAssets.find(a => a.asset === asset)
-
-    console.log('🚀 Asset COL metadata', assetMetadata?.assetColAddress)
     
     // Create transaction request with type
     const transactionRequest = {
@@ -250,7 +243,7 @@ export function SupplyProvider({ children }: { children: React.ReactNode }) {
         spenderAddress: POOL_ADDRESS,
       } : undefined,
       metadata: {
-        asset: assetMetadata?.symbol || 'Unknown',
+        asset: symbol,
         amount: amount,
         decimals: decimals,
       }
