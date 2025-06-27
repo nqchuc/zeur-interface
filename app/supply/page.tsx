@@ -302,7 +302,21 @@ export default function SupplyPage() {
                                     </div>
                                   </div>
 
-                                  <div className="bg-slate-800/50 rounded-lg p-3">
+                                  <div className="space-y-2">
+                                    <Label htmlFor="deposit-amount" className="text-sm font-semibold text-white">
+                                      Deposit Amount
+                                    </Label>
+                                    <Input
+                                      value={amount}
+                                      onChange={(e) => setAmount(e.target.value)}
+                                      id="deposit-amount"
+                                      type="number"
+                                      placeholder="1000"
+                                      className="input-dark text-base py-3 rounded-lg placeholder:text-slate-500"
+                                    />
+                                  </div>
+
+                                  {/* <div className="bg-slate-800/50 rounded-lg p-3">
                                     <div className="text-xs text-slate-400 mb-2">Supported Protocols</div>
                                     <div className="flex flex-wrap gap-2">
                                       {selectedAsset.protocols.map((protocol, index) => (
@@ -311,7 +325,7 @@ export default function SupplyPage() {
                                         </div>
                                       ))}
                                     </div>
-                                  </div>
+                                  </div> */}
                                 </div>
                               ) : null
                             })()}
@@ -342,20 +356,8 @@ export default function SupplyPage() {
                       </div>
 
                       {/* Right Column */}
-                      <div className="md:col-span-5 space-y-3">
-                      <div className="space-y-2">
-                          <Label htmlFor="deposit-amount" className="text-sm font-semibold text-white">
-                            Deposit Amount
-                          </Label>
-                          <Input
-                            value={amount}
-                            onChange={(e) => setAmount(e.target.value)}
-                            id="deposit-amount"
-                            type="number"
-                            placeholder="1000"
-                            className="input-dark text-base py-3 rounded-lg placeholder:text-slate-500"
-                          />
-                        </div>
+                      <div className="md:col-span-5 mt-6">
+                      
                         <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-lg p-4 border border-blue-500/20">
                           <h3 className="text-sm font-semibold text-white mb-3">Review Selection</h3>
                             
@@ -376,14 +378,10 @@ export default function SupplyPage() {
                                       Optimized yield with moderate risk. Combines lending and liquid staking.
                                     </p>
                                     <div className="flex flex-wrap gap-1">
-                                      <Badge variant="outline" className="text-xs border-slate-600 text-slate-400">
-                                        Morpho
-                                      </Badge>
-                                      <Badge variant="outline" className="text-xs border-slate-600 text-slate-400">
-                                        Aave
-                                      </Badge>
-                                      <Badge variant="outline" className="text-xs border-slate-600 text-slate-400">
-                                        Lido
+                                      <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">High yield</Badge>
+
+                                      <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 text-xs">
+                                        AI strategy engine
                                       </Badge>
                                     </div>
                                   </CardContent>
@@ -467,7 +465,7 @@ export default function SupplyPage() {
                             <div className="text-xs text-slate-400">{position.symbol}</div>
                           </td>
                           <td className="text-right py-4">
-                            <div className="font-semibold text-white text-sm">${Number(position.supplyBalance) * 1.17}</div>
+                            <div className="font-semibold text-white text-sm">${(Number(position.supplyBalance) * 1.17).toFixed(2)}</div>
                             <div className="text-xs text-slate-400">{position.symbol}</div>
                           </td>
                           <td className="text-right py-4">
