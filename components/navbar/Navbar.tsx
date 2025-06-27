@@ -12,6 +12,10 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useAccount, useConnect, useDisconnect } from "wagmi"
 import { truncateAddress } from "@/lib/helper"
+import { ConnectButton } from '@rainbow-me/rainbowkit';
+import '@rainbow-me/rainbowkit/styles.css';
+
+
 
 export default function Navbar() {
   const pathname = usePathname()
@@ -64,12 +68,14 @@ export default function Navbar() {
             Connected
           </Badge>
           }
-         {
+         {/* {
             isConnected ? <Button className="btn-secondary-dark rounded-lg">
             <Wallet onClick={() => disconnect()} className="h-4 w-4 mr-2" />
               {truncateAddress(address || "")}
-          </Button> :          <Button onClick={() => connect({ connector: connectors[1]})} className="btn-primary-purple rounded-lg px-6 py-2">Connect Wallet</Button>
-         }
+          </Button> :        
+         } */}
+
+          <ConnectButton accountStatus="address" showBalance={false}></ConnectButton>
           
         </div>
       </div>

@@ -1,14 +1,12 @@
-import { http, createConfig } from 'wagmi'
+import { http } from 'wagmi'
 import { sepolia } from 'wagmi/chains'
-import { injected, metaMask, safe, walletConnect } from 'wagmi/connectors'
+import { getDefaultConfig } from '@rainbow-me/rainbowkit';
 
 
-export const wagmiConfig = createConfig({
+export const wagmiConfig = getDefaultConfig({
   chains: [sepolia],
-  connectors: [
-    injected(),
-    metaMask(),
-  ],
+  appName: 'My Zeur App',
+  projectId: '70d84c4b83c6e7fb51ae2e5cb40ea84a',
   transports: {
     [sepolia.id]: http(),
   },

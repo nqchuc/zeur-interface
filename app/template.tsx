@@ -9,6 +9,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { SupplyProvider } from '@/hooks/contexts/SupplyHookContext'
 import { BorrowProvider } from '@/hooks/contexts/BorrowHookContext'
 import { Toaster } from "@/components/ui/toaster"
+import {
+  darkTheme,
+  RainbowKitProvider,
+} from '@rainbow-me/rainbowkit';
 
 
 function Template({
@@ -23,7 +27,13 @@ function Template({
     return (
     <WagmiProvider config={wagmiConfig}> 
         <QueryClientProvider client={queryClient}>
-            <SupplyProvider> 
+        <RainbowKitProvider theme={darkTheme({
+          accentColor: '#7b3fe4',
+          accentColorForeground: 'white',
+          fontStack: 'system',
+          overlayBlur: 'small',
+        })}  >
+          <SupplyProvider> 
               <BorrowProvider>
                 <div className="min-h-screen dark-gradient-bg">
                     {isLandingPage ? <LandingNavbar /> : <Navbar />}
@@ -36,7 +46,8 @@ function Template({
                     <Toaster />
                   </div>
               </BorrowProvider>
-            </SupplyProvider>
+          </SupplyProvider>
+        </RainbowKitProvider>
         </QueryClientProvider>
       </WagmiProvider>
     )
