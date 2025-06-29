@@ -1,14 +1,18 @@
 "use client"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import Image from "next/image"
+import zeur from  "../../assets/zeur.png"
+
 
 export default function LandingNavbar() {
   return (
     <nav className="sticky top-0 z-50 navbar-blur">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <Link href="/">
-            <span className="text-2xl font-bold text-gradient-purple cursor-pointer">Zeur</span>
+          <Link href="/" className="flex items-center flex-row">
+            <Image src={zeur} className="p-0" alt="Zeur Logo" width={40} height={40}></Image>
+            <span className="text-2xl font-bold text-gradient-purple">Zeur</span>
           </Link>
         </div>
 
