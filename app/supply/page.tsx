@@ -193,7 +193,7 @@ export default function SupplyPage() {
                             </div>
                             <div className="text-right">
                               <div className="font-bold text-green-400 text-base">
-                                {formatPercentage(asset.supplyRate)}
+                                {Number(asset.supplyRate) / 100 }%
                               </div>
                               <div className="text-xs text-slate-400">APY</div>
                             </div>
@@ -291,7 +291,7 @@ export default function SupplyPage() {
                                     </div>
                                     <div className="text-right">
                                       <div className="font-bold text-green-400 text-lg">
-                                        {formatPercentage(selectedAsset.supplyRate)}
+                                        {Number(selectedAsset.supplyRate) / 100}%
                                       </div>
                                       <div className="text-xs text-slate-400">Current APY</div>
                                     </div>
@@ -502,7 +502,7 @@ export default function SupplyPage() {
                             <div className="text-xs text-slate-400">{position.symbol}</div>
                           </td>
                           <td className="text-right py-4">
-                            <div className="font-semibold text-green-400 text-sm">{formatPercentage(position.supplyRate)}</div>
+                            <div className="font-semibold text-green-400 text-sm">{Number(position.supplyRate) / 100}%</div>
                           </td>
                           <td className="text-right py-4">
                             <div className="font-semibold text-cyan-400 text-sm">{formatUtilization(position.utilizationRate)}</div>
