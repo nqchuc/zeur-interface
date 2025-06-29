@@ -14,6 +14,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { vaultStrategies } from "@/lib/constants"
+import { useBorrow } from "@/hooks/contexts/BorrowHookContext"
+import Image from "next/image"
 
 export default function DashboardPage() {
   const stats = [
@@ -42,6 +44,8 @@ export default function DashboardPage() {
       color: "from-purple-500 to-pink-500",
     },
   ]
+
+  const {formattedLstData} = useBorrow();
 
   const quickActions = [
     { icon: <DollarSign className="h-4 w-4" />, label: "New Loan", href: "/borrow", color: "from-purple-500 to-blue-500" },
@@ -102,7 +106,7 @@ export default function DashboardPage() {
       <Card className="card-dark rounded-xl">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg font-bold text-white">Your Positions</CardTitle>
+            <CardTitle className="text-lg font-bold text-white">Example Positions</CardTitle>
             <Link href="/history">
               <Button variant="ghost" size="sm" className="text-purple-400 hover:text-purple-300">
                 View All
@@ -148,8 +152,8 @@ export default function DashboardPage() {
                           🟣
                         </div>
                         <div>
-                          <div className="font-semibold text-white text-sm">stETH Deposit</div>
-                          <div className="text-xs text-slate-400">1.2 stETH ($4,098)</div>
+                          <div className="font-semibold text-white text-sm">EURC Supply</div>
+                          <div className="text-xs text-slate-400">4000 EURC ($4,098)</div>
                         </div>
                       </div>
                       <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs">Earning</Badge>
@@ -161,7 +165,7 @@ export default function DashboardPage() {
                       </div>
                       <div>
                         <div className="text-slate-400">Current APY</div>
-                        <div className="font-semibold text-green-400">5.8%</div>
+                        <div className="font-semibold text-green-400">5.5%</div>
                       </div>
                       <div>
                         <div className="text-slate-400">Earned</div>
@@ -214,42 +218,46 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {vaultStrategies.map((strategy, index) => (
+              {formattedLstData.map((lst : any, index : any) => (
                 <div
                   key={index}
-                  className={`p-2 rounded-lg flex items-center justify-between ${
-                    strategy.recommended ? "bg-purple-500/10 border border-purple-500/20" : ""
+                  className={`p-2 rounded-lg flex items-center justify-between  ${
+                    lst.active ? "bg-purple-500/10 border border-purple-500/20" : ""
                   }`}
                 >
                   <div className="flex items-center space-x-2">
-                    <div
-                      className={`w-8 h-8 rounded-full bg-gradient-to-br ${strategy.color} flex items-center justify-center text-white text-sm`}
+                    <Image
+                      src={lst.icon}
+                      alt="lst icon"
+                      width={32}
+                      height={32}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm`}
                     >
-                      {index + 1}
-                    </div>
+                  
+                    </Image>
                     <div>
                       <div className="font-semibold text-white text-sm flex items-center">
-                        {strategy.name}
-                        {strategy.recommended && (
-                          <Badge className="ml-1 bg-purple-500/20 text-purple-400 border-purple-500/30 text-xs">
+                        {lst.name}
+                        {lst.active && (
+                          <Badge className="ml-2 bg-purple-500/20 text-purple-400 border-purple-500/30 text-xs">
                             <Star className="h-2 w-2 mr-1" />
                             Current
                           </Badge>
                         )}
                       </div>
-                      {/* <div className="text-xs text-slate-400">{strategy.risk} Risk</div> */}
+                      {/* <div className="text-xs text-slate-400">{lst.risk} Risk</div> */}
                       
                     </div>
                   </div>
-                  {/* <div className="text-lg font-bold text-green-400">{strategy.apy}</div> */}
-                  <div className="flex flex-row gap-3 text-sm">
+                  {/* <div className="text-lg font-bold text-green-400">{lst.apy}</div> */}
+                  <div className="flex flex-row gap-3 text-sm items-center">
                       <div>
                         <div className="text-slate-400">Staked Amount</div>
-                        <div className="font-semibold text-white">1000 EURC</div>
+                        <div className="font-semibold text-white">{lst.stakedAmount} {lst.symbol}</div>
                       </div>
                       <div>
                         <div className="text-slate-400">APY</div>
-                        <div className="font-semibold text-green-400">{strategy.apy}</div>
+                        <div className="font-semibold text-green-400">{lst.apy}</div>
                       </div>
                     </div>
                 </div>

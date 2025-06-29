@@ -41,7 +41,7 @@ export default function ZeurLanding() {
     { label: "Total Value Locked", value: "$12.4M", icon: <TrendingUp className="h-5 w-5" /> },
     { label: "Active Borrowers", value: "2,847", icon: <Users className="h-5 w-5" /> },
     { label: "EUR Borrowed", value: "€8.2M", icon: <DollarSign className="h-5 w-5" /> },
-    { label: "Average Yield", value: "12.5%", icon: <Star className="h-5 w-5" /> },
+    { label: "Average Yield", value: "5.5%", icon: <Star className="h-5 w-5" /> },
   ]
 
   const howItWorks = [

@@ -1,3 +1,10 @@
+import ethIcon from "../assets/LstIcon/eth.png";
+import link from "../assets/LstIcon/link.png";
+import lido from "../assets/LstIcon/lido.png"
+import morpho from "../assets/LstIcon/morpho.png"
+import etherFi from "../assets/LstIcon/etherfi.png"
+import rocketPool from "../assets/LstIcon/rocketpool.png"
+
 // User Supply Positions (for Supply Page) - Users supply these debt assets to earn yield
 export const userSupplyPositions = [
   {
@@ -283,6 +290,56 @@ export const ASSET_METADATA: Record<string, { symbol: string; name: string; icon
   },
 }
 
+
+export const LST_METADATA: Record<string, { active: boolean; symbol: string; name: string; icon: any; protocols: string[]; yield: string; decimals: number; }> = {
+  "0x826C3315958BA5F144334dcCD2F825b895d7A160": {
+    active: true, 
+    symbol: 'stLINK', 
+    name: 'Staked Link', 
+    icon: link, 
+    protocols: [] ,
+    yield: "5.2%",
+    decimals: 18
+  },
+  
+  '0x8d9FEF6239024cC359eDd8D0B2EE9E801AaE6E78': { 
+    active: false, 
+    symbol: 'mWETH', 
+    name: 'Morpho WETH', 
+    icon: morpho,
+    protocols: [] ,
+    yield: "2.5%",
+    decimals: 18
+  },
+  
+  '0x38DbC0a33269d22D593f94aD9C4AC709DC31a119': { 
+    active: false, 
+    symbol: 'eETH', 
+    name: 'Etherfi eETH', 
+    icon: etherFi, 
+    protocols: [] ,
+    yield: "2.9%",
+    decimals: 18
+  },
+  '0x5554612481Eb85288EF72258762bF84898604696': { 
+    active: false, 
+    symbol: 'rETH', 
+    name: 'Rocket Pool rETH', 
+    icon: rocketPool,
+    protocols: [] ,
+    yield: "2.6%",
+    decimals: 18
+  },
+  '0x66642E3344Ec349cb7DB250B2C667680a36AB399': { 
+    active: true, 
+    symbol: 'stETH', 
+    name: 'Lido stETH', 
+    icon: lido, 
+    protocols: [],
+    yield: "2.8%" ,
+    decimals: 18
+  },
+}
 
 export const vaultStrategies = [
   {

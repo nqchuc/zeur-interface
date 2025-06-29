@@ -11,15 +11,24 @@ import {
 } from '@/types/contracts'
 import { UI_POOL_DATA_ADDRESS, UIPoolDataABI } from '@/contracts/UIPoolData'
 import { PoolABI, POOL_ADDRESS } from '@/contracts/Pool'
-import { ASSET_METADATA } from '@/lib/constants'
+import { ASSET_METADATA, collateralAssets, LST_METADATA } from '@/lib/constants'
 import { TransactionState, useTransactions, ZeurTransactionType } from '@/hooks/useTransactions'
 import { useSupply } from './SupplyHookContext'
+import { form } from 'viem/chains'
 
 export interface FormattedCollateralData extends FormattedAssetData {
   ltv: string
   liquidationThreshold: string
   liquidationBonus: string
   apy?: string
+  stakedTokens ?: StakedTokenData[]
+}
+
+
+export interface StakedTokenData {
+  stakedToken: Address
+  underlyingAmount: bigint
+  stakedAmount: bigint
 }
 
 export interface FormattedUserCollateralData {
@@ -68,6 +77,7 @@ interface BorrowContextValue {
   isLoadingAssets: boolean
   errorAssets: Error | null
   refetchAssets: () => void
+  formattedLstData: any
   
   // User data
   userData: any | null
@@ -117,11 +127,16 @@ export function BorrowProvider({ children }: { children: React.ReactNode }) {
       args: [asset],
     }))
   }, [collateralAssetList])
+
+  
+  
   
   // Fetch all asset data in parallel
   const { data: assetsData, isLoading: isLoadingData, error: errorData, refetch: refetchData } = useReadContracts({
     contracts: assetDataCalls,
   })
+
+ 
   
   // Fetch user data
   const { data: userData, isLoading: isLoadingUser, error: errorUser, refetch: refetchUser } = useReadContract({
@@ -140,6 +155,8 @@ export function BorrowProvider({ children }: { children: React.ReactNode }) {
         if (result.status !== 'success' || !result.result) return null
         
         const assetData = result.result as any
+
+        console.log(assetData.stakedTokens, "stakedTokens")
 
         const assetAddress = collateralAssetList[index]
         const metadata = ASSET_METADATA[assetAddress] || {
@@ -172,12 +189,11 @@ export function BorrowProvider({ children }: { children: React.ReactNode }) {
           liquidationThreshold: assetData.liquidationThreshold ? (assetData.liquidationThreshold / 100).toFixed(1) : '0',
           liquidationBonus: assetData.liquidationBonus ? (assetData.liquidationBonus / 100).toFixed(1) : '0',
           ///get from price oracle
-          currentPrice: Number(formatUnits(assetData.price, 8),)
-          // apy: metadata.symbol === 'ETH' ? '4.2%' : 
-          //      metadata.symbol === 'stETH' ? '5.8%' : 
-          //      metadata.symbol === 'WBTC' ? '2.9%' : 
-          //      metadata.symbol === 'LINK' ? '3.1%' : '0%',
+          currentPrice: Number(formatUnits(assetData.price, 8)),
+          stakedTokens: assetData.stakedTokens 
         }
+        
+
         
         return formatted
       })
@@ -248,6 +264,40 @@ export function BorrowProvider({ children }: { children: React.ReactNode }) {
       }
     })
   }, [userData, debtAssets])
+
+
+  const formattedLstData = useMemo(() => {
+    if (!formattedCollateralAssets) return []
+
+    let lstData = [] as any
+    formattedCollateralAssets.forEach((asset) => {
+      if(asset.stakedTokens){
+        asset.stakedTokens.forEach((stakedToken: StakedTokenData) => {
+          let metaData = LST_METADATA[stakedToken.stakedToken] || {
+            symbol: 'UNKNOWN',
+            name: 'Unknown Asset',
+            icon: '?',
+          }
+
+          console.log(stakedToken, "stakedToken")
+
+          lstData.push({
+            asset: stakedToken.stakedToken,
+            symbol: metaData.symbol,
+            name: metaData.name,
+            icon: metaData.icon,
+            stakedAmount: formatUnits(stakedToken.stakedAmount, metaData.decimals),
+            apy: metaData.yield,
+            active: metaData.active
+          })
+        })
+      }
+    });
+
+    console.log(lstData, "LST DATA")
+    
+    return lstData
+  }, [formattedCollateralAssets])
   
   // Supply collateral function
   const supplyCollateral = async ({ asset, amount, decimals, isNativeToken = false, symbol }: SupplyCollateralParams) => {
@@ -369,6 +419,7 @@ export function BorrowProvider({ children }: { children: React.ReactNode }) {
       refetchData()
       refetchUser()
     },
+    formattedLstData,
     
     userData: userData || null,
     userCollateralPositions: formattedUserCollateralPositions,
@@ -381,6 +432,7 @@ export function BorrowProvider({ children }: { children: React.ReactNode }) {
     supplyCollateral,
     borrow,
     repay,
+  
     
     // Transaction state
     transactionState,
