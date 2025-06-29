@@ -25,7 +25,7 @@ const formatNumber = (num: string | number, options?: {
 };
 
   const formatPercentage = (bps: string) => {
-    return `${(Number.parseInt(bps) / 100).toFixed(2)}%`
+    return `${(Number.parseInt(bps))}%`
   }
 
   const formatUtilization = (rate: string) => {

@@ -389,8 +389,10 @@ export default function BorrowPage() {
                       {/* Left Column - Loan Configuration */}
                       <div className="md:col-span-7 space-y-4">
 
-                        {/* Selected Asset Information */}
-                        <div className="space-y-2">
+                        {/* Selected Asset Information or Borrow Asset */}
+                        {
+                          activeTab == "supply" ? (
+                            <div className="space-y-2">
                           <Label className="text-sm font-semibold text-white">Selected Collateral Asset</Label>
                           <div className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 rounded-lg p-4 border border-purple-500/20">
                             {collateralAsset  && (() => {
@@ -436,6 +438,26 @@ export default function BorrowPage() {
                             })()}
                           </div>
                         </div>
+                          ) : <div className="space-y-3">
+                          <Label className="text-sm font-semibold text-white">Borrow Asset</Label>
+                          <div className="grid grid-cols-3 gap-2">
+                            {debtAssets.map((asset) => (
+                              <Button
+                                key={asset.symbol}
+                                variant="outline"
+                                className={`token-selector-dark p-2 h-auto flex-col space-y-1 rounded-lg ${
+                                  borrowAsset === asset.symbol ? "border-purple-500 bg-purple-500/10 glow-purple" : ""
+                                }`}
+                                onClick={() => setBorrowAsset(asset.symbol)}
+                              >
+                                <img src={asset.icon} className="text-base w-8 h-8"></img>
+                                <span className="font-semibold text-white text-xs">{asset.symbol}</span>
+                                <span className="text-xs text-slate-400">{asset.borrowRate}% Interest</span>
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                        }
 
                         {/* Tabs for Supply Collateral vs Borrow */}
                         <div className="space-y-3">
@@ -554,25 +576,7 @@ export default function BorrowPage() {
                               </div>
 
                               {/* Borrow Asset */}
-                              <div className="space-y-3">
-                                <Label className="text-sm font-semibold text-white">Borrow Asset</Label>
-                                <div className="grid grid-cols-3 gap-2">
-                                  {debtAssets.map((asset) => (
-                                    <Button
-                                      key={asset.symbol}
-                                      variant="outline"
-                                      className={`token-selector-dark p-2 h-auto flex-col space-y-1 rounded-lg ${
-                                        borrowAsset === asset.symbol ? "border-purple-500 bg-purple-500/10 glow-purple" : ""
-                                      }`}
-                                      onClick={() => setBorrowAsset(asset.symbol)}
-                                    >
-                                      <img src={asset.icon} className="text-base w-8 h-8"></img>
-                                      <span className="font-semibold text-white text-xs">{asset.symbol}</span>
-                                      <span className="text-xs text-slate-400">{asset.borrowRate}% Interest</span>
-                                    </Button>
-                                  ))}
-                                </div>
-                              </div>
+                              
                             </TabsContent>
                           </Tabs>
                         </div>
